@@ -1,0 +1,100 @@
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vethis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vethis
+      POSTGRES_PASSWORD: vethis
+      POSTGRES_DB: vethis
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vethis -d vethis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: vethis-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vethis-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # GPU opcional: descomentar en un host con NVIDIA + nvidia-container-toolkit
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Job de un solo uso: descarga los modelos de chat y embeddings al iniciar el stack.
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: vethis-ollama-pull
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.1:8b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+    entrypoint: >
+      sh -c "
+        until ollama list >/dev/null 2>&1; do echo 'esperando a Ollama...'; sleep 2; done;
+        ollama pull $$OLLAMA_CHAT_MODEL;
+        ollama pull $$OLLAMA_EMBEDDING_MODEL;
+        echo 'modelos listos.';
+      "
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    container_name: vethis-api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      POSTGRES_DSN: postgresql+asyncpg://vethis:vethis@postgres:5432/vethis
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./evals/reportes:/app/evals/reportes
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:

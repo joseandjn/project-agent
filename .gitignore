@@ -1,0 +1,27 @@
+# --- Secretos ---
+.env
+*.env
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# --- Datos generados en runtime (no son fuente, se regeneran) ---
+data/derivaciones/*.json
+data/scoring/*.json
+data/historial/*.json
+data/memoria/*.json
+!data/**/.gitkeep
+
+# --- Reportes de evals (generados) ---
+evals/reportes/*.json
+!evals/reportes/.gitkeep
+
+# --- Docker / SO ---
+*.log
+.DS_Store
