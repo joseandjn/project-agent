@@ -1,9 +1,11 @@
+import argparse
 import asyncio
 import json
+import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from deepeval.test_case import LLMTestCase
 
@@ -14,13 +16,22 @@ from evals.metrics import build_metrics
 REPORTES_DIR = Path(__file__).resolve().parent / "reportes"
 
 
-async def generar_test_cases() -> List[LLMTestCase]:
+async def generar_test_cases(caso_id: Optional[str] = None) -> List[LLMTestCase]:
     """Corre cada caso contra el agente real (segun LLM_PROVIDER) para obtener
-    actual_output de verdad, incluyendo el historial de turnos previos si los hay."""
+    actual_output de verdad, incluyendo el historial de turnos previos si los hay.
+    Si se pasa caso_id, corre solo ese caso (util para no gastar tokens/tiempo probando
+    contra una API paga)."""
     test_cases = []
+    casos = [c for c in CASOS_DE_PRUEBA if c.id == caso_id] if caso_id else CASOS_DE_PRUEBA
 
-    for caso in CASOS_DE_PRUEBA:
-        session_id = f"eval-{caso.id}"
+    if caso_id and not casos:
+        ids_disponibles = ", ".join(c.id for c in CASOS_DE_PRUEBA)
+        raise ValueError(f"No existe el caso {caso_id!r}. Casos disponibles: {ids_disponibles}")
+
+    for caso in casos:
+        # session_id unico por corrida: reusar uno fijo entre corridas dejaba el
+        # historial de sesiones anteriores en Redis contaminando la respuesta evaluada.
+        session_id = f"eval-{caso.id}-{uuid.uuid4().hex[:8]}"
         historial = []
         respuesta = ""
 
@@ -109,7 +120,16 @@ def generar_reporte(resultados: dict) -> Path:
 
 
 async def main() -> None:
-    test_cases = await generar_test_cases()
+    parser = argparse.ArgumentParser(description="Corre las metricas GEval sobre los casos de evals/casos/.")
+    parser.add_argument(
+        "--caso",
+        dest="caso_id",
+        default=None,
+        help="ID de un caso puntual a correr (ver evals/casos/casos_prueba.py). Si se omite, corre todos.",
+    )
+    args = parser.parse_args()
+
+    test_cases = await generar_test_cases(caso_id=args.caso_id)
     resultados = await ejecutar_evaluaciones(test_cases)
     generar_reporte(resultados)
 
