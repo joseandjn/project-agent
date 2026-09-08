@@ -7,6 +7,12 @@ el estado del grafo usando `thread_id == session_id`. El TTL de sesion
 (`SESSION_TTL_SECONDS`) se aplica a las claves del checkpoint y se refresca en cada lectura,
 asi la sesion sigue viva mientras el cliente conversa.
 
+Se usa la variante **shallow** (`AsyncShallowRedisSaver`): guarda solo el ultimo checkpoint
+por sesion, no el historial completo de pasos del grafo. Para un chat de soporte no hace
+falta el time-travel; ademas asi el guardrail de PII es efectivo de punta a punta (con el
+saver completo, los checkpoints intermedios retienen el mensaje del cliente crudo, antes de
+la redaccion, durante todo el TTL de la sesion).
+
 Referencia: https://redis.io/blog/langgraph-redis-build-smarter-ai-agents-with-memory-persistence/
 
 Nota: requiere Redis con el modulo RediSearch (imagen `redis:8` o `redis-stack`).
@@ -15,11 +21,11 @@ Nota: requiere Redis con el modulo RediSearch (imagen `redis:8` o `redis-stack`)
 import asyncio
 from typing import Any, Dict, Optional
 
-from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+from langgraph.checkpoint.redis import AsyncShallowRedisSaver
 
 from app.core.config import get_settings
 
-_checkpointer: Optional[AsyncRedisSaver] = None
+_checkpointer: Optional[AsyncShallowRedisSaver] = None
 _lock = asyncio.Lock()
 
 
@@ -29,7 +35,7 @@ def session_config(session_id: str) -> Dict[str, Any]:
     return {"configurable": {"thread_id": session_id}}
 
 
-async def get_checkpointer() -> AsyncRedisSaver:
+async def get_checkpointer() -> AsyncShallowRedisSaver:
     """Devuelve el checkpointer de Redis (singleton del proceso), creandolo la primera vez.
 
     Se construye directo (sin el context manager `from_conn_string`) para poder vivir toda
@@ -43,7 +49,7 @@ async def get_checkpointer() -> AsyncRedisSaver:
         if _checkpointer is None:
             settings = get_settings()
             ttl_minutes = max(1, settings.session_ttl_seconds // 60)
-            saver = AsyncRedisSaver(
+            saver = AsyncShallowRedisSaver(
                 redis_url=settings.redis_url,
                 ttl={"default_ttl": ttl_minutes, "refresh_on_read": True},
             )

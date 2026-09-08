@@ -46,8 +46,9 @@ perfilar → buscar → recomendar
 - **Memoria**: corto plazo por sesión con el checkpointer de LangGraph sobre Redis
   (`langgraph-checkpoint-redis`, `app/memory/short_term/`; `thread_id == session_id`, TTL 30
   min); largo plazo por cliente en Postgres (`app/memory/long_term/`, pendiente).
-- **Guardrails y evals**: reglas duras de derivación y anclaje al catálogo
-  (`app/guardrails/`), set dorado de pruebas (`evals/`).
+- **Guardrails y evals**: guardrail de PII con `PIIMiddleware` de LangChain
+  (`app/guardrails/pii.py`); reglas duras de derivación y anclaje al catálogo (pendientes);
+  set dorado de pruebas (`evals/`).
 
 Detalle completo del diseño en `../Asesor_de_ventas.html` (blueprint de las 5 capas).
 
@@ -218,8 +219,10 @@ docker compose exec api python -m evals.run_evals
       derivar) como maquina de estados explicita; hoy el agente decide libremente qué
       tool llamar (ReAct genérico vía `create_agent`), no sigue ese flujo fijo
 - [ ] `app/memory/long_term` — perfil de cliente en Postgres
-- [ ] `app/guardrails` — reglas de derivación y anclaje al catálogo forzadas en código
-      (hoy dependen de que el LLM siga el system prompt, no de una validación dura)
+- [~] `app/guardrails` — hecho: **guardrail de PII** (`app/guardrails/pii.py`, `PIIMiddleware`
+      de LangChain): número de tarjeta ⇒ bloquea antes del agente; email y móvil peruano ⇒
+      redactados en entrada/salida (no llegan al LLM ni al checkpointer). Pendiente: reglas
+      de derivación y anclaje al catálogo forzadas en código (hoy dependen del system prompt)
 - [x] `evals/` — 9 métricas de calidad conversacional (DeepEval + `GEval`), corridas
       contra el agente real; falta el "set dorado" de aserciones duras del blueprint
       (evals.py con asserts en Python, ej. "todo SKU citado existe en el catálogo")
