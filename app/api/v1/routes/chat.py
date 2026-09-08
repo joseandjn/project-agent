@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 
-from app.memory.short_term.session_memory import append_exchange, get_history
 from app.models.chat import ChatRequest, ChatResponse
 from app.services.llm_client import generate_reply
 
@@ -9,13 +8,11 @@ router = APIRouter()
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
-    history = await get_history(request.session_id)
-    messages = [*history, {"role": "user", "content": request.mensaje}]
-
+    # El historial de la sesion lo maneja el checkpointer de Redis (thread_id == session_id):
+    # aca solo se pasa el turno nuevo del cliente.
     try:
-        respuesta = await generate_reply(messages, request.session_id)
+        respuesta = await generate_reply(request.mensaje, request.session_id)
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    await append_exchange(request.session_id, request.mensaje, respuesta)
     return ChatResponse(respuesta=respuesta, session_id=request.session_id)

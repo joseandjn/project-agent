@@ -5,18 +5,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routes import api_router
 from app.core.config import get_settings
-from app.db.redis_client import get_redis_client
+from app.memory.short_term.session_memory import close_checkpointer, get_checkpointer
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis_client = get_redis_client()
-    await redis_client.ping()
+    # Inicializa el checkpointer de Redis (memoria de corto plazo): conecta y crea los
+    # indices RediSearch. Si Redis no esta disponible, el arranque falla aca.
+    await get_checkpointer()
     # TODO: inicializar pool de Postgres+pgvector cuando se conecte la memoria de largo plazo
     yield
-    await redis_client.aclose()
+    await close_checkpointer()
 
 
 app = FastAPI(

@@ -43,8 +43,9 @@ perfilar → buscar → recomendar
   de derivación, transición de alimentos y políticas de la tienda (`data/conocimiento/`).
 - **Tools**: `buscar_alimentos`, `consultar_disponibilidad`, `calcular_racion`,
   `derivar_veterinario` (`app/tools/`).
-- **Memoria**: corto plazo por sesión en Redis (`app/memory/short_term/`), largo plazo por
-  cliente en Postgres (`app/memory/long_term/`).
+- **Memoria**: corto plazo por sesión con el checkpointer de LangGraph sobre Redis
+  (`langgraph-checkpoint-redis`, `app/memory/short_term/`; `thread_id == session_id`, TTL 30
+  min); largo plazo por cliente en Postgres (`app/memory/long_term/`, pendiente).
 - **Guardrails y evals**: reglas duras de derivación y anclaje al catálogo
   (`app/guardrails/`), set dorado de pruebas (`evals/`).
 
@@ -62,10 +63,10 @@ project-agent/
 │   ├── tools/                  # tools del agente (funciones puras + wrappers @tool de LangChain)
 │   ├── guardrails/              # validaciones de entrada/salida
 │   ├── scoring/                  # re-ranking y feedback
-│   ├── memory/                    # short_term (Redis) / long_term (Postgres)
+│   ├── memory/                    # short_term (checkpointer LangGraph+Redis) / long_term (Postgres)
 │   ├── models/                     # esquemas Pydantic
 │   ├── services/                    # lógica de negocio
-│   ├── db/                           # clientes Postgres+pgvector / Redis
+│   ├── db/                           # cliente Postgres+pgvector (Redis lo maneja el checkpointer)
 │   └── observability/                 # Langfuse / OTel
 ├── data/                                # catálogo, conocimiento, historial, memoria, derivaciones
 ├── etl/                                  # export catálogo → Pydantic → embeddings
@@ -82,7 +83,7 @@ project-agent/
 ## Requisitos previos
 
 - [Docker](https://www.docker.com/) + Docker Compose (opción recomendada, levanta todo el stack), **o**
-- Python 3.11+, [Ollama](https://ollama.com), PostgreSQL 15+ con `pgvector` y Redis 7+ instalados a mano (opción manual)
+- Python 3.11+, [Ollama](https://ollama.com), PostgreSQL 15+ con `pgvector` y Redis **8+** (o `redis-stack`, necesita el módulo RediSearch para el checkpointer) instalados a mano (opción manual)
 
 ## Cómo levantar el proyecto
 
@@ -201,7 +202,10 @@ docker compose exec api python -m evals.run_evals
 
 - [x] `app/core/config.py` — settings con Pydantic leyendo `.env` (incluye `LLM_PROVIDER`: ollama/openai/anthropic)
 - [x] `app/api/v1/routes` — endpoint de chat (`POST /api/v1/chat`)
-- [x] `app/memory/short_term` — historial de sesión en Redis (TTL 30 min)
+- [x] `app/memory/short_term` — memoria de sesión con el checkpointer de LangGraph sobre
+      Redis (`langgraph-checkpoint-redis`): el agente persiste/recarga el estado del grafo
+      por `thread_id == session_id`, con TTL de 30 min y refresh en cada lectura. Requiere
+      Redis con RediSearch (`redis:8` / `redis-stack`)
 - [x] `app/tools` — `buscar_alimentos` (semántica con Ollama + filtros duros + scoring),
       `consultar_disponibilidad`, `calcular_racion`, `derivar_veterinario`, sobre un
       **catálogo de muestra** de 20 SKUs (`data/catalogo/alimentos.json`) — pendiente

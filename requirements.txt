@@ -20,7 +20,11 @@ langchain-anthropic==1.7.1
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0
 pgvector==0.3.5
-redis==5.1.1
+redis==8.1.0
+# Memoria de corto plazo: checkpointer de LangGraph sobre Redis (thread-level, por session_id).
+# Requiere el modulo RediSearch -> imagen redis:8 o redis-stack (ver docker-compose.yml).
+# https://redis.io/blog/langgraph-redis-build-smarter-ai-agents-with-memory-persistence/
+langgraph-checkpoint-redis==0.5.2
 
 # --- Observabilidad (open source) ---
 langfuse==2.51.3

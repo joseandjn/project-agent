@@ -19,7 +19,9 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    # redis:8 incluye el modulo RediSearch (FT.*), que necesita el checkpointer de
+    # LangGraph (langgraph-checkpoint-redis) para la memoria de corto plazo.
+    image: redis:8-alpine
     container_name: vethis-redis
     restart: unless-stopped
     ports:

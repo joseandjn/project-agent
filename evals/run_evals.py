@@ -29,16 +29,13 @@ async def generar_test_cases(caso_id: Optional[str] = None) -> List[LLMTestCase]
         raise ValueError(f"No existe el caso {caso_id!r}. Casos disponibles: {ids_disponibles}")
 
     for caso in casos:
-        # session_id unico por corrida: reusar uno fijo entre corridas dejaba el
-        # historial de sesiones anteriores en Redis contaminando la respuesta evaluada.
+        # session_id unico por corrida: el historial multi-turno lo mantiene el checkpointer
+        # de Redis por thread_id; un id fijo arrastraria el estado de corridas anteriores.
         session_id = f"eval-{caso.id}-{uuid.uuid4().hex[:8]}"
-        historial = []
         respuesta = ""
 
         for mensaje in caso.mensajes:
-            historial.append({"role": "user", "content": mensaje})
-            respuesta = await generate_reply(historial, session_id)
-            historial.append({"role": "assistant", "content": respuesta})
+            respuesta = await generate_reply(mensaje, session_id)
 
         test_cases.append(
             LLMTestCase(
