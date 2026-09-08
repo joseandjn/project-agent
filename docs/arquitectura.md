@@ -56,7 +56,7 @@ flowchart TB
 
     subgraph pend["Pendiente (blueprint, sin código)"]
         direction TB
-        lg["Grafo LangGraph explícito<br/>perfilar → buscar → recomendar | derivar"]
+        lg["Grafo LangGraph explícito<br/>perfilar → buscar → recomendar / derivar"]
         obs["Observabilidad<br/>Langfuse — OpenTelemetry"]
         gw["Gateway nginx — CI Jenkins — canary"]
         etl["ETL de catálogo<br/>export BD → Pydantic → embeddings"]
