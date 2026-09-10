@@ -41,3 +41,7 @@ pytest-asyncio==1.4.0
 
 # --- Evaluacion del agente (LLM-as-judge, open source) ---
 deepeval==4.2.2
+
+# --- Red teaming de seguridad (OWASP ASI 2026) ---
+deepteam==1.0.9
+sentry-sdk==2.69.1   # dep no declarada por deepteam 1.0.9 (deepteam/telemetry.py la importa)

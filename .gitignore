@@ -18,8 +18,9 @@ data/historial/*.json
 data/memoria/*.json
 !data/**/.gitkeep
 
-# --- Reportes de evals (generados) ---
+# --- Reportes de evals y red teaming (generados) ---
 evals/reportes/*.json
+evals/reportes/*.md
 !evals/reportes/.gitkeep
 
 # --- Docker / SO ---

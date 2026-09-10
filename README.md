@@ -199,6 +199,24 @@ docker compose exec api python -m evals.run_evals
 > juez. El primer `buscar_alimentos` de la corrida además calienta el cache de
 > embeddings del catálogo.
 
+## Red teaming de seguridad (DeepTeam + OWASP ASI 2026)
+
+`evals/red_team.py` ataca al **agente real** con [DeepTeam](https://github.com/confident-ai/deepteam)
+contra el framework **OWASP Top 10 for Agentic Applications (ASI) 2026**: por cada categoría
+(ASI01–ASI10) DeepTeam genera ataques adversarios (prompt injection, roleplay, jailbreaking
+multi-turno, context poisoning, Base64/ROT13…), los lanza contra `generate_reply`, y un
+LLM-juez decide si el agente resistió o fue vulnerado. Reutiliza `EVAL_JUDGE_MODEL` /
+`LLM_PROVIDER` para el simulador y el juez.
+
+```bash
+docker compose exec api python -m evals.red_team --categoria ASI_01   # una categoría
+docker compose exec api python -m evals.red_team --full --intensidad 2 # las 10 (lento/caro)
+```
+
+Sin argumentos corre ASI01, ASI03 y ASI06 (las de mayor riesgo según
+`docs/vulnerabilidades.md`). Genera un JSON (formato DeepTeam) y un reporte Markdown legible
+en `evals/reportes/redteam_*.md`.
+
 ## Roadmap
 
 - [x] `app/core/config.py` — settings con Pydantic leyendo `.env` (incluye `LLM_PROVIDER`: ollama/openai/anthropic)

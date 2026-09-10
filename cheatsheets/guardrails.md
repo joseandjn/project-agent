@@ -125,3 +125,34 @@ docker compose exec api python -m evals.run_evals                               
 ```
 
 Reportes en `evals/reportes/*.json` (carpeta montada, quedan en el host).
+
+---
+
+## 4 · Red teaming de seguridad (DeepTeam × OWASP ASI 2026)
+
+`evals/red_team.py` ataca al agente real con ataques adversarios por cada categoría del
+OWASP Top 10 for Agentic Applications 2026. **Consume tokens del `LLM_PROVIDER`** (simulador
++ agente + juez): empezá por una categoría.
+
+```bash
+# una categoría (recomendado para empezar) — ASI_01 .. ASI_10
+docker compose exec api python -m evals.red_team --categoria ASI_01
+
+# el default (sin flags): ASI_01, ASI_03, ASI_06 (las de mayor riesgo)
+docker compose exec api python -m evals.red_team
+
+# las 10 categorías, más cobertura por vulnerabilidad (lento y caro)
+docker compose exec api python -m evals.red_team --full --intensidad 2
+```
+
+Flags: `--intensidad N` (ataques por tipo de vulnerabilidad, default 1),
+`--max-concurrent N` (paralelismo, default 3).
+
+Salida en `evals/reportes/` (montado al host):
+- `<timestamp>.json` — formato DeepTeam (CVSS, todos los test cases).
+- `redteam_<timestamp>.md` — reporte legible: resumen, tabla por categoría y por ataque, y
+  el detalle de cada caso donde el agente **fue vulnerado** (entrada del ataque + respuesta
+  del agente + motivo del juez).
+
+> Necesita Redis arriba (el agente usa el checkpointer) y credenciales del `LLM_PROVIDER`.
+> El mapeo ASI → riesgo del proyecto está en `docs/vulnerabilidades.md`.
