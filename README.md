@@ -71,6 +71,7 @@ project-agent/
 │   └── observability/                 # Langfuse / OTel
 ├── data/                                # catálogo, conocimiento, historial, memoria, derivaciones
 ├── etl/                                  # export catálogo → Pydantic → embeddings
+├── graph_neo4j/                           # experimento aislado: catálogo como grafo (no lo usa el agente)
 ├── evals/                                 # set dorado de pruebas
 ├── tests/{unit,integration}/
 ├── deploy/{docker,nginx,jenkins}/
@@ -216,6 +217,21 @@ docker compose exec api python -m evals.red_team --full --intensidad 2 # las 10 
 Sin argumentos corre ASI01, ASI03 y ASI06 (las de mayor riesgo según
 `docs/vulnerabilidades.md`). Genera un JSON (formato DeepTeam) y un reporte Markdown legible
 en `evals/reportes/redteam_*.md`.
+
+## Experimento: grafo de catálogo (Neo4j)
+
+`graph_neo4j/` modela `data/catalogo/alimentos.json` como grafo (producto ↔ especie,
+etapa, tamaño de raza, proteína, tipo de alimento, ingredientes) para explorar consultas
+tipo "alternativas que comparten ingredientes pero sin pollo". Es un módulo **aislado**:
+no lo importa `app/` y el servicio `neo4j` no es dependencia de `api` en
+`docker-compose.yml`. Ver [`graph_neo4j/README.md`](graph_neo4j/README.md) para el
+modelo completo y cómo correrlo.
+
+```bash
+docker compose up -d neo4j
+python -m graph_neo4j.load_catalogo
+python -m graph_neo4j.queries
+```
 
 ## Roadmap
 

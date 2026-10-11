@@ -45,3 +45,6 @@ deepeval==4.2.2
 # --- Red teaming de seguridad (OWASP ASI 2026) ---
 deepteam==1.0.9
 sentry-sdk==2.69.1   # dep no declarada por deepteam 1.0.9 (deepteam/telemetry.py la importa)
+
+# --- Neo4j (experimento aislado: graph_neo4j/, no lo usa el agente) ---
+neo4j==5.26.0

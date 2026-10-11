@@ -70,6 +70,25 @@ services:
       "
     restart: "no"
 
+  # Experimento aislado: grafo del catalogo (graph_neo4j/). No es dependencia de
+  # `api` ni de ningun otro servicio — se levanta y se usa por separado.
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: vethis-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-vethis1234}
+    ports:
+      - "7474:7474"   # Neo4j Browser
+      - "7687:7687"   # Bolt
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: .
@@ -100,3 +119,4 @@ volumes:
   postgres_data:
   redis_data:
   ollama_data:
+  neo4j_data:
