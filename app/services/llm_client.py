@@ -49,17 +49,18 @@ def get_chat_model() -> BaseChatModel:
     return _build_chat_model(get_settings())
 
 
-async def generate_reply(mensaje: str, session_id: str) -> str:
+async def generate_reply(mensaje: str, thread_id: str) -> str:
     """Corre el agente sobre un turno del cliente. El historial NO se pasa a mano: el
-    checkpointer de Redis lo recarga a partir del `thread_id == session_id` y guarda el
-    estado nuevo al terminar (memoria de corto plazo, ver session_memory.py)."""
+    checkpointer de Redis lo recarga a partir del `thread_id` y guarda el estado nuevo al
+    terminar (memoria de corto plazo, ver session_memory.py). En `/chat` el `thread_id` es
+    `AuthContext.thread_id` (sacado del JWT); los evals pasan uno propio."""
     # Corta antes de tocar el agente: un numero de tarjeta no debe entrar al grafo ni al
     # checkpointer (el bloqueo del middleware llega despues de persistir el input).
     if contiene_numero_de_tarjeta(mensaje):
         return _RESPUESTA_TARJETA_BLOQUEADA
 
     model = get_chat_model()
-    tools = build_tools(session_id)
+    tools = build_tools(thread_id)
     checkpointer = await get_checkpointer()
     agent = create_agent(
         model,
@@ -72,7 +73,7 @@ async def generate_reply(mensaje: str, session_id: str) -> str:
     try:
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": mensaje}]},
-            config=session_config(session_id),
+            config=session_config(thread_id),
         )
     except PIIDetectionError:
         return _RESPUESTA_TARJETA_BLOQUEADA

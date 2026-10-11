@@ -15,20 +15,23 @@ GitHub y varios editores renderizan Mermaid directo; si no, pegá el bloque en
 flowchart TB
     subgraph cliente["Cliente"]
         web["Sitio web de la tienda<br/>widget de chat — fuera de este repo"]
+        tback["Backend de la tienda<br/>guarda la API key — fuera de este repo"]
     end
 
     subgraph apic["Contenedor api · FastAPI + uvicorn"]
         direction TB
+        authr["POST /api/v1/auth/token — /auth/refresh<br/>app/api/v1/routes/auth.py"]
+        jwtdep["get_auth_context — valida JWT<br/>app/api/v1/dependencies/auth.py"]
         route["POST /api/v1/chat<br/>app/api/v1/routes/chat.py"]
         health["GET /health"]
-        gen["generate_reply(mensaje, session_id)<br/>app/services/llm_client.py"]
+        gen["generate_reply(mensaje, thread_id)<br/>app/services/llm_client.py"]
         precheck["Pre-chequeo de tarjeta<br/>app/guardrails/pii.py"]
 
         subgraph agente["Agente — LangChain create_agent (ReAct)"]
             direction TB
             mw["PIIMiddleware<br/>email/tel: redact — tarjeta: block"]
             model["Chat model<br/>get_chat_model() según LLM_PROVIDER"]
-            subgraph tools["Tools — build_tools(session_id)"]
+            subgraph tools["Tools — build_tools(thread_id)"]
                 direction LR
                 t1["buscar_alimentos"]
                 t2["consultar_disponibilidad"]
@@ -37,7 +40,7 @@ flowchart TB
             end
         end
 
-        cp["AsyncShallowRedisSaver<br/>checkpointer — thread_id = session_id — TTL 30 min"]
+        cp["AsyncShallowRedisSaver<br/>checkpointer — thread_id = tienda:sesión — TTL 30 min"]
     end
 
     subgraph prov["Proveedor de LLM — LLM_PROVIDER"]
@@ -51,7 +54,7 @@ flowchart TB
         direction TB
         redis[("Redis 8 + RediSearch<br/>memoria de sesión")]
         fs["Ficheros data/<br/>catálogo — conocimiento<br/>derivaciones/DER-*.json — scoring/feedback.json"]
-        pg[("PostgreSQL + pgvector<br/>memoria de largo plazo")]
+        pg[("PostgreSQL + pgvector<br/>tiendas — clientes (Alembic)")]
     end
 
     subgraph pend["Pendiente (blueprint, sin código)"]
@@ -60,10 +63,15 @@ flowchart TB
         obs["Observabilidad<br/>Langfuse — OpenTelemetry"]
         gw["Gateway nginx — CI Jenkins — canary"]
         etl["ETL de catálogo<br/>export BD → Pydantic → embeddings"]
-        longmem["Memoria de largo plazo<br/>perfil de cliente"]
+        longmem["Memoria de largo plazo<br/>perfil de cliente — Fase 2"]
     end
 
-    web -->|"HTTP — mensaje, session_id"| route
+    tback -->|"X-API-Key + external_user_id"| authr
+    authr -->|"valida key / upsert cliente"| pg
+    authr -->|"JWT"| tback
+    tback -->|"JWT"| web
+    web -->|"HTTP — Bearer JWT + mensaje"| route
+    route --> jwtdep
     web -.-> gw -.-> route
     route --> gen
     gen --> precheck
@@ -92,7 +100,7 @@ flowchart TB
     gen -.-> longmem
 
     classDef pendiente fill:#f4f4f4,stroke:#999,stroke-dasharray:4,color:#555;
-    class lg,obs,gw,etl,longmem,pg pendiente;
+    class lg,obs,gw,etl,longmem pendiente;
 ```
 
 ---
@@ -113,15 +121,19 @@ sequenceDiagram
     participant T as Tools
     participant FS as data/
 
-    W->>R: mensaje, session_id
-    R->>G: generate_reply(mensaje, session_id)
+    W->>R: Authorization: Bearer JWT + mensaje
+    alt JWT ausente, inválido o vencido
+        R-->>W: 401
+    end
+    Note over R: get_auth_context: tienda, sesión y cliente salen del token
+    R->>G: generate_reply(mensaje, thread_id = tienda:sesión)
     G->>P: contiene_numero_de_tarjeta(mensaje)?
     alt hay número de tarjeta
         P-->>W: respuesta fija (no entra al agente ni a Redis)
     else sin tarjeta
-        G->>A: ainvoke(messages, thread_id = session_id)
+        G->>A: ainvoke(messages, thread_id)
         A->>CP: cargar último checkpoint de la sesión
-        CP->>RE: GET checkpoint de session_id
+        CP->>RE: GET checkpoint del thread_id
         RE-->>A: historial del grafo
         Note over A,M: PIIMiddleware redacta email/teléfono antes del modelo
         A->>M: prompt + historial + tools
@@ -130,7 +142,7 @@ sequenceDiagram
         T-->>M: resultado
         M-->>A: respuesta final
         A->>CP: guardar estado nuevo (redactado)
-        CP->>RE: SET checkpoint de session_id (TTL 30 min)
+        CP->>RE: SET checkpoint del thread_id (TTL 30 min)
         A-->>G: último mensaje
         G-->>W: respuesta, session_id
     end
@@ -142,10 +154,10 @@ sequenceDiagram
 
 | Contenedor | Imagen | Rol | Puerto |
 |---|---|---|---|
-| `vethis-api` | build local (`python:3.11-slim`) | backend FastAPI | 8000 |
+| `vethis-api` | build local (`python:3.11-slim`) | backend FastAPI; al arrancar corre `alembic upgrade head` | 8000 |
 | `vethis-redis` | `redis:8-alpine` | memoria de sesión (checkpointer, necesita RediSearch) | 6379 |
 | `vethis-ollama` | `ollama/ollama` | embeddings (y chat si `LLM_PROVIDER=ollama`) | 11434 |
 | `vethis-ollama-pull` | `ollama/ollama` | job de un solo uso: descarga los modelos | — |
-| `vethis-postgres` | `pgvector/pgvector:pg16` | memoria de largo plazo — **levanta pero la app no se conecta** | 5432 |
+| `vethis-postgres` | `pgvector/pgvector:pg16` | tiendas y clientes (autenticación); memoria de largo plazo pendiente | 5432 |
 
 Sin gateway, sin CI, sin orquestador: todo en una máquina con `docker compose`.

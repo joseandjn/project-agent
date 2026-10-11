@@ -9,6 +9,9 @@ Evaluación del backend `project-agent` (VethisAgent) contra la
   ficheros `data/`, memoria de sesión con `AsyncShallowRedisSaver` (`thread_id ==
   session_id`), guardrail de PII (`PIIMiddleware`), LLM según `LLM_PROVIDER`
   (Ollama / OpenAI / Anthropic). Endpoint `POST /api/v1/chat` sin autenticación.
+- **Actualización 2026-10-11**: se implementó la autenticación (Fase 1 de
+  `docs/memoria_largo_plazo.md`). Ver las notas "Actualización" en ASI03 y ASI06 y el
+  ítem 1 de la remediación; el resto del análisis no cambió.
 - **Fecha**: 2026-09-09. Es una evaluación puntual; revalidar tras cambios de
   arquitectura (grafo LangGraph, memoria de largo plazo, sub-agentes, gateway).
 - **Verificación automatizada**: `evals/red_team.py` ataca al agente real con
@@ -23,8 +26,8 @@ Evaluación del backend `project-agent` (VethisAgent) contra la
 | ASI | Riesgo | Estado |
 |---|---|---|
 | **ASI01 · Agent Goal Hijack** | 🔴 Alto | Rol y reglas de negocio sostenidos solo por el system prompt |
-| **ASI06 · Memory & Context Poisoning** | 🔴 Alto | `session_id` del cliente + RAG desde fuentes mutables + feedback de scoring |
-| **ASI03 · Identity & Privilege Abuse** | 🔴 Alto | `/chat` sin auth ni rate limit; `session_id` / `cliente_id` sin verificar |
+| **ASI06 · Memory & Context Poisoning** | 🔴 Alto | ~~`session_id` del cliente~~ (resuelto: sale del JWT) + RAG desde fuentes mutables + feedback de scoring |
+| **ASI03 · Identity & Privilege Abuse** | 🟠 Medio | ~~`/chat` sin auth~~ y ~~`session_id` / `cliente_id` sin verificar~~ (resuelto: JWT propio); falta rate limit |
 | **ASI09 · Human-Agent Trust Exploitation** | 🟠 Medio-alto | Dominio cuasi-médico; precios/links sin anclaje duro a la fuente |
 | **ASI02 · Tool Misuse & Exploitation** | 🟠 Medio | Tool-calling sin límite; `derivar_veterinario` escribe ficheros |
 | **ASI04 · Agentic Supply Chain** | 🟠 Medio | Árbol de dependencias grande, sin lockfile/hashes; imágenes y modelos sin pinear |
@@ -78,6 +81,11 @@ Se puede apoyar en middleware de LangChain (igual que el de PII).
    está conectado, pero por diseño: feedback falso repetido de "acierto" para un SKU sube
    su posición → manipulación de la recomendación.
 
+**Actualización (2026-10-11)**: el vector 1 está resuelto. `session_id` lo genera el backend
+y viaja firmado en el JWT (`app/core/security.py`); el `thread_id` del checkpoint es
+`{tienda_id}:{session_id}`, así que no se puede adivinar ni elegir la sesión de otro.
+Siguen abiertos los vectores 2 y 3.
+
 **Mitigación**: derivar el `session_id` de un token autenticado (no del body); tratar el
 texto del catálogo/conocimiento como **datos no confiables** (delimitar, no interpolar como
 instrucciones); validar/sanear el export del catálogo; escribir feedback solo con señal
@@ -101,9 +109,16 @@ feedback real").
 closure de `build_tools`), nunca desde el LLM — el modelo no puede falsear la identidad de
 la sesión al derivar.
 
-**Mitigación pendiente**: autenticación en el endpoint (API key del sitio + sesión de
-usuario), `session_id`/`cliente_id` derivados del token, rate limit por cliente en el
-gateway.
+**Actualización (2026-10-11), mitigado:** cada tienda tiene una API key (solo su sha256 en
+Postgres) con la que su backend pide un JWT propio (`POST /api/v1/auth/token`, HS256,
+`exp` configurable, `alg` fijo). `/chat` exige el Bearer y saca tienda, sesión y cliente
+del token, nunca del body. El `external_id` de la tienda se traduce a un UUID interno, que
+es lo único que viaja en el token. Si se desactiva una tienda, se corta el refresh. Tests:
+`tests/unit/test_security.py`, `tests/unit/test_chat_auth.py`, `tests/integration/test_auth_api.py`.
+
+**Mitigación pendiente**: rate limit por tienda/cliente en el gateway; CORS por tienda
+(`tiendas.origenes_permitidos` existe pero todavía no se usa); un token emitido sigue
+siendo válido hasta su `exp` aunque se desactive la tienda (el máximo es `JWT_TTL_SECONDS`).
 
 ### 🟠 ASI09 · Human-Agent Trust Exploitation
 
@@ -215,7 +230,7 @@ secuestrado dentro de una petición lo cubre mejor **ASI01**. El "agente auditor
 
 | # | Acción | Ataca |
 |---|---|---|
-| 1 | **Autenticación en `/chat`** (API key del sitio + sesión de usuario) y derivar `session_id` / `cliente_id` del token, **nunca del body**. | ASI03, ASI06 |
+| 1 | ✅ **Hecho (2026-10-11).** ~~Autenticación en `/chat` (API key del sitio + sesión de usuario) y derivar `session_id` / `cliente_id` del token, nunca del body.~~ | ASI03, ASI06 |
 | 2 | **Guardrails en código** (`app/guardrails/`): forzar derivación ante síntoma en la entrada; guardrail de salida que ancle precios/URLs a `consultar_disponibilidad`. | ASI01, ASI09 |
 | 3 | **Límites y resiliencia**: `ModelFallbackMiddleware` + `Model/ToolCallLimitMiddleware` (built-in de LangChain) + rate limit en el gateway nginx. | ASI08, ASI02 |
 | 4 | **Higiene de supply chain**: lockfile con hashes, `pip-audit` en CI, imágenes y modelos pineados por digest. | ASI04 |

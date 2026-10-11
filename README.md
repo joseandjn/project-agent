@@ -8,9 +8,9 @@ el link del producto en la tienda web, donde el cliente completa la compra.
 Este repo es exclusivamente el **backend**: expone el agente como una API con FastAPI para
 que cualquier tienda pueda integrarlo en su propio chat web (frontend).
 
-> Estado actual: scaffold del proyecto + entrypoint de FastAPI (`/health`). El grafo del
-> agente, las tools, la memoria y la conexión a Postgres/Redis/Ollama todavía no están
-> implementadas — ver [Roadmap](#roadmap).
+> Estado actual: agente con tools, memoria de sesión en Redis, guardrail de PII y
+> autenticación por tienda (JWT propio + Postgres). Pendientes principales: memoria de
+> largo plazo y grafo LangGraph propio — ver [Roadmap](#roadmap).
 
 ## Stack (100% open source)
 
@@ -21,6 +21,8 @@ que cualquier tienda pueda integrarlo en su propio chat web (frontend).
 | LLM y embeddings | Ollama (ej. `llama3.1:8b` para chat, `nomic-embed-text` para embeddings) |
 | Memoria de sesión (corto plazo) | Redis |
 | Memoria de cliente (largo plazo) + catálogo vectorizado | PostgreSQL + pgvector |
+| Tiendas, clientes y migraciones | PostgreSQL + SQLAlchemy (asyncpg) + Alembic |
+| Autenticación | JWT propio (PyJWT), emitido con la API key de cada tienda |
 | Observabilidad | Langfuse + OpenTelemetry |
 | Validación de datos | Pydantic |
 
@@ -67,7 +69,7 @@ project-agent/
 │   ├── memory/                    # short_term (checkpointer LangGraph+Redis) / long_term (Postgres)
 │   ├── models/                     # esquemas Pydantic
 │   ├── services/                    # lógica de negocio
-│   ├── db/                           # cliente Postgres+pgvector (Redis lo maneja el checkpointer)
+│   ├── db/                           # Postgres: modelos SQLAlchemy, sesión async y migraciones Alembic
 │   └── observability/                 # Langfuse / OTel
 ├── data/                                # catálogo, conocimiento, historial, memoria, derivaciones
 ├── etl/                                  # export catálogo → Pydantic → embeddings
@@ -95,7 +97,7 @@ Levanta Postgres+pgvector, Redis, Ollama (con descarga automática de los modelo
 API en un solo comando — todo open source, nada de servicios propietarios.
 
 ```bash
-cp .env.example .env   # opcional: ajustar modelos, orígenes CORS, etc.
+cp .env.example .env   # completar JWT_SECRET (obligatorio, ver Opción B paso 3)
 docker compose up -d --build
 ```
 
@@ -103,7 +105,7 @@ Esto arranca 4 servicios:
 
 | Servicio | Rol | Puerto |
 |---|---|---|
-| `postgres` | PostgreSQL + pgvector (catálogo, memoria largo plazo) | 5432 |
+| `postgres` | PostgreSQL + pgvector (tiendas/clientes; memoria largo plazo y catálogo, pendientes) | 5432 |
 | `redis` | memoria de sesión (corto plazo) | 6379 |
 | `ollama` | LLM + embeddings | 11434 |
 | `ollama-pull` | job de un solo uso que descarga los modelos configurados y termina | — |
@@ -150,9 +152,17 @@ O, si prefieres instalarlos nativamente: `ollama serve` + `ollama pull llama3.1:
 ```bash
 cp .env.example .env
 # ajustar OLLAMA_BASE_URL, POSTGRES_DSN, REDIS_URL si usaste otros puertos/hosts
+# JWT_SECRET es obligatorio (minimo 32 bytes); generarlo con:
+python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-**4. Ejecutar la API**
+**4. Crear el esquema de Postgres** (en Docker lo hace el contenedor `api` al arrancar)
+
+```bash
+alembic upgrade head
+```
+
+**5. Ejecutar la API**
 
 ```bash
 uvicorn app.main:app --reload
@@ -166,6 +176,46 @@ curl http://localhost:8000/health
 ```
 
 Documentación interactiva (Swagger) disponible en `http://localhost:8000/docs`.
+
+## Autenticación (integrar una tienda)
+
+El backend emite **su propio JWT**, así que funciona con cualquier tienda sin depender de
+su sistema de login. Diseño completo: [`docs/memoria_largo_plazo.md`](docs/memoria_largo_plazo.md).
+
+**1. Registrar la tienda** (una vez). Imprime la API key, que **solo se muestra esta vez**:
+
+```bash
+python -m scripts.crear_tienda "Mi Tienda"
+# en Docker: docker compose exec api python -m scripts.crear_tienda "Mi Tienda"
+```
+
+**2. El backend de la tienda pide un token** cuando el usuario abre el chat. La API key
+nunca debe llegar al navegador:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/token \
+  -H "X-API-Key: vth_..." -H "Content-Type: application/json" \
+  -d '{"external_user_id": "u-123"}'   # {} => sesión anónima
+# {"access_token":"eyJ...","token_type":"bearer","expires_in":3600,"session_id":"..."}
+```
+
+**3. El widget de chat usa el token.** La sesión y el cliente salen del token, no del body:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/chat \
+  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -d '{"mensaje": "Hola, tengo un gato adulto de 4 kg"}'
+```
+
+**4. Renovar antes de que venza** (`JWT_TTL_SECONDS`, 1 h por defecto). Devuelve un token
+nuevo con la misma sesión: `POST /api/v1/auth/refresh` con `Authorization: Bearer eyJ...`.
+
+> **Cambio incompatible:** `POST /api/v1/chat` ya no acepta `session_id` ni `cliente_id`
+> en el body y responde `401` sin un token válido.
+
+**Migraciones:** el esquema vive en `app/db/models.py` y las migraciones en
+`app/db/migrations/versions/`. Para un cambio nuevo:
+`alembic revision --autogenerate --rev-id 0002 -m "descripcion"` y luego `alembic upgrade head`.
 
 ## Tests
 
@@ -237,6 +287,10 @@ python -m graph_neo4j.queries
 
 - [x] `app/core/config.py` — settings con Pydantic leyendo `.env` (incluye `LLM_PROVIDER`: ollama/openai/anthropic)
 - [x] `app/api/v1/routes` — endpoint de chat (`POST /api/v1/chat`)
+- [x] **Autenticación** (Fase 1 de `docs/memoria_largo_plazo.md`) — JWT propio emitido con
+      la API key de cada tienda (`POST /api/v1/auth/token`, `/auth/refresh`); `/chat` exige
+      Bearer y saca sesión/cliente del token; `thread_id = {tienda}:{sesión}`; tablas
+      `tiendas` / `clientes` en Postgres con migraciones Alembic; `scripts/crear_tienda.py`
 - [x] `app/memory/short_term` — memoria de sesión con el checkpointer de LangGraph sobre
       Redis (`langgraph-checkpoint-redis`): el agente persiste/recarga el estado del grafo
       por `thread_id == session_id`, con TTL de 30 min y refresh en cada lectura. Requiere
@@ -252,7 +306,8 @@ python -m graph_neo4j.queries
 - [ ] `app/agent/graph` — grafo LangGraph propio (perfilar → buscar → recomendar |
       derivar) como maquina de estados explicita; hoy el agente decide libremente qué
       tool llamar (ReAct genérico vía `create_agent`), no sigue ese flujo fijo
-- [ ] `app/memory/long_term` — perfil de cliente en Postgres
+- [ ] `app/memory/long_term` — perfil de cliente en Postgres (Fase 2 de
+      `docs/memoria_largo_plazo.md`: consolidación cada 5 turnos + por inactividad)
 - [~] `app/guardrails` — hecho: **guardrail de PII** (`app/guardrails/pii.py`, `PIIMiddleware`
       de LangChain): número de tarjeta ⇒ bloquea antes del agente; email y móvil peruano ⇒
       redactados en entrada/salida (no llegan al LLM ni al checkpointer). Pendiente: reglas

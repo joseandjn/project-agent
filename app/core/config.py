@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     session_ttl_seconds: int = 1800  # 30 min, igual al TTL de checkpoints del blueprint
 
+    # --- Autenticacion: JWT propio, agnostico a la tienda (docs/memoria_largo_plazo.md) ---
+    # Sin JWT_SECRET la app no arranca (ver lifespan en main.py).
+    jwt_secret: Optional[str] = None
+    jwt_ttl_seconds: int = 3600  # 1 h; se renueva con POST /api/v1/auth/refresh
+
     # --- Langfuse (self-hosted, observabilidad) ---
     langfuse_host: str = "http://localhost:3000"
     langfuse_public_key: Optional[str] = None

@@ -3,7 +3,8 @@ por sesion, guardado en Redis.
 
 En vez de serializar el historial a mano (un JSON por `session_id`), se delega en el
 checkpointer de LangGraph `langgraph-checkpoint-redis`: el agente persiste y recarga solo
-el estado del grafo usando `thread_id == session_id`. El TTL de sesion
+el estado del grafo por `thread_id` (`{tienda_id}:{session_id}`, sacado del JWT; ver
+`AuthContext.thread_id` en app/core/security.py). El TTL de sesion
 (`SESSION_TTL_SECONDS`) se aplica a las claves del checkpoint y se refresca en cada lectura,
 asi la sesion sigue viva mientras el cliente conversa.
 
@@ -29,10 +30,9 @@ _checkpointer: Optional[AsyncShallowRedisSaver] = None
 _lock = asyncio.Lock()
 
 
-def session_config(session_id: str) -> Dict[str, Any]:
-    """Config que le dice a LangGraph que hilo (conversacion) cargar/guardar.
-    El `session_id` lo asigna el sitio web; aca se usa tal cual como `thread_id`."""
-    return {"configurable": {"thread_id": session_id}}
+def session_config(thread_id: str) -> Dict[str, Any]:
+    """Config que le dice a LangGraph que hilo (conversacion) cargar/guardar."""
+    return {"configurable": {"thread_id": thread_id}}
 
 
 async def get_checkpointer() -> AsyncShallowRedisSaver:

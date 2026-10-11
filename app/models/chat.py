@@ -1,12 +1,10 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
+    # La identidad (tienda, sesion, cliente) sale del JWT del header Authorization, nunca del
+    # body: ver app/api/v1/dependencies/auth.py y docs/memoria_largo_plazo.md.
     mensaje: str = Field(..., min_length=1, description="Texto libre del cliente")
-    session_id: str = Field(..., min_length=1, description="Identificador de sesion asignado por el sitio web")
-    cliente_id: Optional[str] = Field(default=None, description="Identificador del cliente, si esta autenticado")
 
 
 class ChatResponse(BaseModel):

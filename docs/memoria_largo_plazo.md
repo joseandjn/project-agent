@@ -1,6 +1,6 @@
 # Diseño · Autenticación + memoria de largo plazo
 
-Estado: **aprobado**, pendiente de implementar (Fase 1 en curso).
+Estado: **Fase 1 (autenticación) implementada**; Fase 2 (memoria de largo plazo) pendiente.
 
 Objetivo: que el asesor recuerde a cada cliente entre sesiones (sus mascotas, condiciones,
 preferencias y lo que ya se le recomendó), guardado en PostgreSQL. Como esa información es
