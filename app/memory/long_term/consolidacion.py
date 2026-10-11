@@ -12,6 +12,11 @@ Estado en Redis:
   `consolidados` es cuantos mensajes del checkpoint ya pasaron por el extractor.
 - `vethis:mem:lock:{thread_id}`: lock (`SET NX EX`) para que la misma sesion no se
   consolide dos veces a la vez, aunque haya varias replicas de `api`.
+- `vethis:mem:cliente:{cliente_id}:sesiones`: set de sesiones abiertas del cliente.
+- `vethis:mem:cliente:{cliente_id}:borrado`: timestamp del ultimo `DELETE /memoria`.
+
+Borrar la memoria (`olvidar_sesiones_abiertas`) descarta tambien lo que el cliente dijo
+hasta ese momento en sesiones todavia abiertas; lo que diga despues si se puede guardar.
 """
 
 import asyncio
@@ -70,16 +75,35 @@ def _sesion_key(thread_id: str) -> str:
     return f"vethis:mem:sesion:{thread_id}"
 
 
+def _sesiones_cliente_key(cliente_id: uuid.UUID) -> str:
+    return f"vethis:mem:cliente:{cliente_id}:sesiones"
+
+
+def _borrado_key(cliente_id: uuid.UUID) -> str:
+    return f"vethis:mem:cliente:{cliente_id}:borrado"
+
+
+def _ttl_estado() -> int:
+    # Un poco mas que el checkpoint: sin checkpoint ya no hay nada que consolidar.
+    return get_settings().session_ttl_seconds + 600
+
+
+async def _cantidad_de_mensajes(thread_id: str) -> int:
+    checkpoint = await (await get_checkpointer()).aget_tuple(session_config(thread_id))
+    return len(checkpoint.checkpoint["channel_values"].get("messages", [])) if checkpoint else 0
+
+
 async def registrar_turno(ctx: AuthContext) -> int:
     """Anota un turno de una sesion autenticada. Devuelve cuantos turnos van sin consolidar."""
-    settings = get_settings()
     key = _sesion_key(ctx.thread_id)
+    sesiones = _sesiones_cliente_key(ctx.cliente_id)
     pipe = get_redis().pipeline(transaction=True)
     pipe.zadd(ACTIVIDAD_KEY, {ctx.thread_id: time.time()})
     pipe.hset(key, "cliente_id", str(ctx.cliente_id))
     pipe.hincrby(key, "pendientes", 1)
-    # Un poco mas que el checkpoint: sin checkpoint ya no hay nada que consolidar.
-    pipe.expire(key, settings.session_ttl_seconds + 600)
+    pipe.expire(key, _ttl_estado())
+    pipe.sadd(sesiones, ctx.thread_id)
+    pipe.expire(sesiones, _ttl_estado())
     resultados = await pipe.execute()
     return int(resultados[2])
 
@@ -95,6 +119,7 @@ async def consolidar(thread_id: str) -> bool:
     lock_key, token = f"vethis:mem:lock:{thread_id}", uuid.uuid4().hex
     if not await r.set(lock_key, token, nx=True, ex=_LOCK_TTL_SEGUNDOS):
         return False
+    inicio = time.time()
     try:
         estado = await r.hgetall(_sesion_key(thread_id))
         if not estado.get("cliente_id"):
@@ -113,6 +138,11 @@ async def consolidar(thread_id: str) -> bool:
             if perfil is None:
                 # No se avanza `consolidados`: el proximo disparador reintenta con estos mensajes.
                 return False
+            # Si el cliente borro su memoria mientras corria el extractor, no se guarda: esos
+            # mensajes ya los descarto `olvidar_sesiones_abiertas`.
+            borrado = await r.get(_borrado_key(cliente_id))
+            if borrado is not None and float(borrado) >= inicio:
+                return False
             await guardar_perfil(db, cliente_id, perfil, thread_id)
 
         await r.hset(_sesion_key(thread_id), mapping={"consolidados": len(mensajes), "pendientes": 0})
@@ -122,6 +152,17 @@ async def consolidar(thread_id: str) -> bool:
         return False
     finally:
         await r.eval(_LIBERAR_LOCK, 1, lock_key, token)
+
+
+async def olvidar_sesiones_abiertas(cliente_id: uuid.UUID) -> None:
+    """Al borrar la memoria: marca como ya procesado todo lo que el cliente dijo hasta ahora
+    en sus sesiones abiertas, y cancela una consolidacion que este corriendo."""
+    r = get_redis()
+    await r.set(_borrado_key(cliente_id), repr(time.time()), ex=_ttl_estado())
+    for thread_id in await r.smembers(_sesiones_cliente_key(cliente_id)):
+        cantidad = await _cantidad_de_mensajes(thread_id)
+        await r.hset(_sesion_key(thread_id), mapping={"consolidados": cantidad, "pendientes": 0})
+        await r.zrem(ACTIVIDAD_KEY, thread_id)
 
 
 async def consolidar_inactivas() -> int:

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies.auth import get_auth_context
 from app.core.security import AuthContext
 from app.db.session import get_db
+from app.memory.long_term.consolidacion import olvidar_sesiones_abiertas
 from app.memory.long_term.models import PerfilCliente
 from app.memory.long_term.repo import borrar_perfil, leer_perfil
 
@@ -29,6 +30,8 @@ async def ver(ctx: AuthContext = Depends(_cliente), db: AsyncSession = Depends(g
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def borrar(ctx: AuthContext = Depends(_cliente), db: AsyncSession = Depends(get_db)) -> Response:
-    """Borra el perfil y su historial de versiones."""
+    """Borra el perfil y su historial de versiones. Lo que el cliente dijo hasta ahora en
+    sesiones todavia abiertas tampoco se guarda despues."""
+    await olvidar_sesiones_abiertas(ctx.cliente_id)
     await borrar_perfil(db, ctx.cliente_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

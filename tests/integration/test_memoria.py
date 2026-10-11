@@ -25,6 +25,7 @@ from app.memory.long_term.consolidacion import (
     consolidar_inactivas,
     debe_consolidar,
     get_redis,
+    olvidar_sesiones_abiertas,
     registrar_turno,
 )
 from app.memory.long_term.models import Mascota, PerfilExtraido
@@ -55,12 +56,17 @@ SALIDA_LLM = PerfilExtraido(mascotas=[Mascota(nombre="Rocky", especie="Perro", p
 
 
 class _ExtractorFake:
-    def __init__(self):
+    def __init__(self, durante=None):
         self.llamadas = 0
+        self.entradas = []
+        self.durante = durante  # corrutina opcional que se ejecuta mientras "piensa" el LLM
 
     def with_structured_output(self, schema):
-        def _invocar(_):
+        async def _invocar(mensajes):
             self.llamadas += 1
+            self.entradas.append(mensajes[1].content)
+            if self.durante:
+                await self.durante()
             return SALIDA_LLM
 
         return RunnableLambda(_invocar)
@@ -90,7 +96,12 @@ async def ctx():
 
     r = get_redis()
     await r.zrem(ACTIVIDAD_KEY, contexto.thread_id)
-    await r.delete(f"vethis:mem:sesion:{contexto.thread_id}", f"vethis:mem:lock:{contexto.thread_id}")
+    await r.delete(
+        f"vethis:mem:sesion:{contexto.thread_id}",
+        f"vethis:mem:lock:{contexto.thread_id}",
+        f"vethis:mem:cliente:{contexto.cliente_id}:sesiones",
+        f"vethis:mem:cliente:{contexto.cliente_id}:borrado",
+    )
     await (await get_checkpointer()).adelete_thread(contexto.thread_id)
     async with get_sessionmaker()() as db:
         await db.execute(delete(Tienda).where(Tienda.id == tienda.id))
@@ -224,3 +235,37 @@ async def test_memoria_rechaza_sesiones_anonimas():
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         r = await c.get("/api/v1/memoria", headers={"Authorization": f"Bearer {emitir_token(anonimo)}"})
     assert r.status_code == 403
+
+
+async def test_borrar_descarta_lo_dicho_en_sesiones_abiertas(ctx, extractor):
+    await _conversar(ctx.thread_id, "Tengo un perro, Rocky")
+    await registrar_turno(ctx)
+
+    headers = {"Authorization": f"Bearer {emitir_token(ctx)}"}
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        assert (await c.delete("/api/v1/memoria", headers=headers)).status_code == 204
+
+    # Ni el disparador por turnos ni el sweeper guardan lo dicho antes del borrado.
+    assert await consolidar(ctx.thread_id) is False
+    assert await get_redis().zscore(ACTIVIDAD_KEY, ctx.thread_id) is None
+    assert extractor.llamadas == 0
+    assert await _versiones(ctx.cliente_id) == 0
+
+    # Lo que el cliente dice despues del borrado si se guarda, y solo eso.
+    await _conversar(ctx.thread_id, "Ahora tengo una gata, Michi")
+    await registrar_turno(ctx)
+    assert await consolidar(ctx.thread_id) is True
+    assert "Michi" in extractor.entradas[0]
+    assert "Rocky" not in extractor.entradas[0]
+
+
+async def test_borrar_mientras_corre_el_extractor_no_guarda(ctx, monkeypatch):
+    fake = _ExtractorFake(durante=lambda: olvidar_sesiones_abiertas(ctx.cliente_id))
+    monkeypatch.setattr("app.memory.long_term.extractor.get_memoria_model", lambda: fake)
+    await _conversar(ctx.thread_id, "Tengo un perro, Rocky")
+    await registrar_turno(ctx)
+
+    assert await consolidar(ctx.thread_id) is False
+    assert fake.llamadas == 1
+    assert await _versiones(ctx.cliente_id) == 0

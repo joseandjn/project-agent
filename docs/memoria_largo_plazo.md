@@ -212,6 +212,8 @@ Estado en Redis por sesión (con un TTL un poco mayor que el del checkpoint):
 - `vethis:mem:actividad`: sorted set `thread_id → timestamp del último turno`.
 - `vethis:mem:sesion:{thread_id}`: hash `{cliente_id, pendientes, consolidados}`, donde
   `consolidados` es cuántos mensajes del checkpoint ya pasaron por el extractor.
+- `vethis:mem:cliente:{cliente_id}:sesiones`: set de sesiones abiertas del cliente, y
+  `vethis:mem:cliente:{cliente_id}:borrado`: hora del último `DELETE /memoria`.
 
 `consolidar(thread_id)`:
 
@@ -297,7 +299,11 @@ El perfil se lee en `app/api/v1/routes/chat.py` y llega a `generate_reply` como 
 ### Privacidad (Ley 29733)
 
 - `GET /api/v1/memoria`: el cliente autenticado ve su propio perfil.
-- `DELETE /api/v1/memoria`: borra el perfil y su historial.
+- `DELETE /api/v1/memoria`: borra el perfil y su historial. También descarta lo que el
+  cliente dijo **hasta ese momento** en sesiones todavía abiertas: se marca como ya
+  procesado y no se guarda después, ni por turnos ni por inactividad. Si una consolidación
+  estaba corriendo, no guarda su resultado. Lo que el cliente diga después del borrado sí
+  se puede guardar (`olvidar_sesiones_abiertas` en `consolidacion.py`).
 - Una sesión anónima recibe `403` en los dos endpoints.
 - Las condiciones de salud de la mascota y los datos de consumo del cliente son datos
   personales. Avisar al usuario y pedir su consentimiento es responsabilidad de la tienda,
