@@ -8,9 +8,9 @@ el link del producto en la tienda web, donde el cliente completa la compra.
 Este repo es exclusivamente el **backend**: expone el agente como una API con FastAPI para
 que cualquier tienda pueda integrarlo en su propio chat web (frontend).
 
-> Estado actual: agente con tools, memoria de sesión en Redis, guardrail de PII y
-> autenticación por tienda (JWT propio + Postgres). Pendientes principales: memoria de
-> largo plazo y grafo LangGraph propio — ver [Roadmap](#roadmap).
+> Estado actual: agente con tools, memoria de sesión en Redis, memoria de largo plazo por
+> cliente en Postgres, guardrail de PII y autenticación por tienda (JWT propio). Pendiente
+> principal: grafo LangGraph propio — ver [Roadmap](#roadmap).
 
 ## Stack (100% open source)
 
@@ -47,7 +47,9 @@ perfilar → buscar → recomendar
   `derivar_veterinario` (`app/tools/`).
 - **Memoria**: corto plazo por sesión con el checkpointer de LangGraph sobre Redis
   (`langgraph-checkpoint-redis`, `app/memory/short_term/`; `thread_id == session_id`, TTL 30
-  min); largo plazo por cliente en Postgres (`app/memory/long_term/`, pendiente).
+  min); largo plazo por cliente en Postgres (`app/memory/long_term/`): un perfil
+  estructurado que se consolida cada 5 turnos y al quedar la sesión inactiva, y se agrega
+  al system prompt — ver [Memoria de largo plazo](#memoria-de-largo-plazo).
 - **Guardrails y evals**: guardrail de PII con `PIIMiddleware` de LangChain
   (`app/guardrails/pii.py`); reglas duras de derivación y anclaje al catálogo (pendientes);
   set dorado de pruebas (`evals/`).
@@ -105,7 +107,7 @@ Esto arranca 4 servicios:
 
 | Servicio | Rol | Puerto |
 |---|---|---|
-| `postgres` | PostgreSQL + pgvector (tiendas/clientes; memoria largo plazo y catálogo, pendientes) | 5432 |
+| `postgres` | PostgreSQL + pgvector (tiendas, clientes, memoria de largo plazo; catálogo pendiente) | 5432 |
 | `redis` | memoria de sesión (corto plazo) | 6379 |
 | `ollama` | LLM + embeddings | 11434 |
 | `ollama-pull` | job de un solo uso que descarga los modelos configurados y termina | — |
@@ -213,6 +215,33 @@ nuevo con la misma sesión: `POST /api/v1/auth/refresh` con `Authorization: Bear
 > **Cambio incompatible:** `POST /api/v1/chat` ya no acepta `session_id` ni `cliente_id`
 > en el body y responde `401` sin un token válido.
 
+## Memoria de largo plazo
+
+Solo para clientes autenticados (token con `external_user_id`). El agente recuerda a cada
+cliente entre sesiones mediante un **perfil estructurado** en Postgres: mascotas,
+condiciones, proteínas a evitar, presupuesto, preferencias, productos consultados y
+derivaciones. No se guarda la transcripción. Diseño: [`docs/memoria_largo_plazo.md`](docs/memoria_largo_plazo.md).
+
+- **Cuándo se guarda:** cada `MEMORIA_CONSOLIDAR_CADA_N_TURNOS` turnos (5), en segundo plano,
+  y cuando la sesión lleva `MEMORIA_INACTIVIDAD_SEGUNDOS` (25 min) sin mensajes, antes de
+  que Redis la borre.
+- **Cómo:** una llamada al LLM con salida estructurada (`app/memory/long_term/extractor.py`)
+  actualiza el perfil. No es una tool del agente. Los SKUs y las derivaciones salen de las
+  tool calls, no del LLM. La PII se redacta antes de guardar.
+- **Uso:** el perfil se agrega al system prompt como bloque `<perfil_cliente>`, y el agente
+  confirma los datos con el cliente antes de usarlos.
+- **Privacidad:** `GET /api/v1/memoria` muestra el perfil del cliente del token y
+  `DELETE /api/v1/memoria` lo borra junto con su historial de versiones.
+
+**Elegir el modelo del extractor** (`MEMORIA_MODEL`): `evals/run_evals_memoria.py` corre 7
+casos con aserciones duras (hechos, actualización, no inventar, envenenamiento, PII) y mide
+la latencia:
+
+```bash
+python -m evals.run_evals_memoria --repeticiones 3
+python -m evals.run_evals_memoria --modelo qwen2.5:14b   # otro modelo del mismo LLM_PROVIDER
+```
+
 **Migraciones:** el esquema vive en `app/db/models.py` y las migraciones en
 `app/db/migrations/versions/`. Para un cambio nuevo:
 `alembic revision --autogenerate --rev-id 0002 -m "descripcion"` y luego `alembic upgrade head`.
@@ -306,8 +335,10 @@ python -m graph_neo4j.queries
 - [ ] `app/agent/graph` — grafo LangGraph propio (perfilar → buscar → recomendar |
       derivar) como maquina de estados explicita; hoy el agente decide libremente qué
       tool llamar (ReAct genérico vía `create_agent`), no sigue ese flujo fijo
-- [ ] `app/memory/long_term` — perfil de cliente en Postgres (Fase 2 de
-      `docs/memoria_largo_plazo.md`: consolidación cada 5 turnos + por inactividad)
+- [x] `app/memory/long_term` — perfil de cliente en Postgres (Fase 2 de
+      `docs/memoria_largo_plazo.md`): extractor LLM con salida estructurada, consolidación
+      cada 5 turnos + sweeper por inactividad, `GET`/`DELETE /api/v1/memoria`, eval del
+      extractor (`evals/run_evals_memoria.py`)
 - [~] `app/guardrails` — hecho: **guardrail de PII** (`app/guardrails/pii.py`, `PIIMiddleware`
       de LangChain): número de tarjeta ⇒ bloquea antes del agente; email y móvil peruano ⇒
       redactados en entrada/salida (no llegan al LLM ni al checkpointer). Pendiente: reglas

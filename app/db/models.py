@@ -1,15 +1,15 @@
 """Tablas de Postgres (SQLAlchemy 2.0). El esquema real lo crean las migraciones de Alembic
 (`app/db/migrations/`); estas clases son la fuente que usa `alembic revision --autogenerate`.
 
-Diseño: docs/memoria_largo_plazo.md (Fase 1: `tiendas` y `clientes`).
+Diseño: docs/memoria_largo_plazo.md (Fase 1: `tiendas` y `clientes`; Fase 2: perfiles).
 """
 
 import uuid
 from datetime import datetime
-from typing import List
+from typing import Any, Dict, List
 
-from sqlalchemy import ARRAY, Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ARRAY, BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -44,4 +44,36 @@ class Cliente(Base):
         UUID(as_uuid=True), ForeignKey("tiendas.id", ondelete="CASCADE"), nullable=False
     )
     external_id: Mapped[str] = mapped_column(Text, nullable=False)
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class PerfilClienteDB(Base):
+    """Memoria de largo plazo: un perfil estructurado por cliente (`PerfilCliente` de
+    app/memory/long_term/models.py, serializado a JSONB). No se guarda la transcripcion."""
+
+    __tablename__ = "perfiles_cliente"
+
+    cliente_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="CASCADE"), primary_key=True
+    )
+    perfil: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class PerfilClienteHistorial(Base):
+    """Cada version guardada de un perfil, para auditar o revertir un envenenamiento de
+    memoria (ASI06). Se borra en cascada con el cliente."""
+
+    __tablename__ = "perfiles_cliente_historial"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    cliente_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    perfil: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    thread_id: Mapped[str] = mapped_column(Text, nullable=False)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

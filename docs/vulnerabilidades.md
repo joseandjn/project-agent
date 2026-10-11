@@ -81,6 +81,16 @@ Se puede apoyar en middleware de LangChain (igual que el de PII).
    está conectado, pero por diseño: feedback falso repetido de "acierto" para un SKU sube
    su posición → manipulación de la recomendación.
 
+**Actualización (2026-10-11), memoria de largo plazo:** se agrega un vector nuevo, el
+perfil persistente del cliente. Mitigaciones: lo escribe una función del backend y no una
+tool del agente; la conversación entra al extractor delimitada como datos; los SKUs y las
+derivaciones salen de las tool calls verificadas contra el catálogo, no del LLM; se redacta
+la PII y se descarta la actualización si aparece una tarjeta; al inyectarlo en el prompt
+va como bloque `<perfil_cliente>` sin `<`/`>` en los valores, y el agente debe confirmarlo
+antes de usarlo; cada versión queda en `perfiles_cliente_historial` para auditar o
+revertir. El caso `envenenamiento` de `evals/run_evals_memoria.py` lo verifica (gpt-4o-mini
+3/3, llama3.1:8b 3/3 en la primera corrida).
+
 **Actualización (2026-10-11)**: el vector 1 está resuelto. `session_id` lo genera el backend
 y viaja firmado en el JWT (`app/core/security.py`); el `thread_id` del checkpoint es
 `{tienda_id}:{session_id}`, así que no se puede adivinar ni elegir la sesión de otro.

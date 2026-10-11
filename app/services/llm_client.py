@@ -1,12 +1,15 @@
 from functools import lru_cache
+from typing import Optional
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import PIIDetectionError
 from langchain_core.language_models import BaseChatModel
 
+from app.agent.prompts.perfil_cliente import render_bloque_perfil
 from app.agent.prompts.system_prompt import SYSTEM_PROMPT
 from app.core.config import Settings, get_settings
 from app.guardrails.pii import build_pii_guardrail, contiene_numero_de_tarjeta
+from app.memory.long_term.models import PerfilCliente
 from app.memory.short_term.session_memory import get_checkpointer, session_config
 from app.tools.langchain_tools import build_tools
 
@@ -17,7 +20,9 @@ _RESPUESTA_TARJETA_BLOQUEADA = (
 )
 
 
-def _build_chat_model(settings: Settings) -> BaseChatModel:
+def build_chat_model(settings: Settings, model: Optional[str] = None) -> BaseChatModel:
+    """Modelo de chat del LLM_PROVIDER configurado. `model` reemplaza el nombre del modelo
+    del proveedor (lo usa el extractor de memoria con MEMORIA_MODEL)."""
     provider = settings.llm_provider.strip().lower()
 
     # temperature baja: menos variabilidad al redactar la respuesta final a partir del
@@ -25,35 +30,38 @@ def _build_chat_model(settings: Settings) -> BaseChatModel:
     if provider == "ollama":
         from langchain_ollama import ChatOllama
 
-        return ChatOllama(model=settings.ollama_chat_model, base_url=settings.ollama_base_url, temperature=0)
+        return ChatOllama(model=model or settings.ollama_chat_model, base_url=settings.ollama_base_url, temperature=0)
 
     if provider == "openai":
         if not settings.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY no esta configurado (LLM_PROVIDER=openai)")
         from langchain_openai import ChatOpenAI
 
-        return ChatOpenAI(model=settings.openai_chat_model, api_key=settings.openai_api_key, temperature=0)
+        return ChatOpenAI(model=model or settings.openai_chat_model, api_key=settings.openai_api_key, temperature=0)
 
     if provider == "anthropic":
         if not settings.anthropic_api_key:
             raise RuntimeError("ANTHROPIC_API_KEY no esta configurado (LLM_PROVIDER=anthropic)")
         from langchain_anthropic import ChatAnthropic
 
-        return ChatAnthropic(model=settings.anthropic_chat_model, api_key=settings.anthropic_api_key, temperature=0)
+        return ChatAnthropic(model=model or settings.anthropic_chat_model, api_key=settings.anthropic_api_key, temperature=0)
 
     raise ValueError(f"LLM_PROVIDER no soportado: {settings.llm_provider!r} (usar 'ollama', 'openai' o 'anthropic')")
 
 
 @lru_cache
 def get_chat_model() -> BaseChatModel:
-    return _build_chat_model(get_settings())
+    return build_chat_model(get_settings())
 
 
-async def generate_reply(mensaje: str, thread_id: str) -> str:
+async def generate_reply(mensaje: str, thread_id: str, perfil: Optional[PerfilCliente] = None) -> str:
     """Corre el agente sobre un turno del cliente. El historial NO se pasa a mano: el
     checkpointer de Redis lo recarga a partir del `thread_id` y guarda el estado nuevo al
     terminar (memoria de corto plazo, ver session_memory.py). En `/chat` el `thread_id` es
-    `AuthContext.thread_id` (sacado del JWT); los evals pasan uno propio."""
+    `AuthContext.thread_id` (sacado del JWT); los evals pasan uno propio.
+
+    `perfil` es la memoria de largo plazo del cliente (si esta autenticado y tiene una):
+    se agrega al system prompt como un bloque delimitado de datos."""
     # Corta antes de tocar el agente: un numero de tarjeta no debe entrar al grafo ni al
     # checkpointer (el bloqueo del middleware llega despues de persistir el input).
     if contiene_numero_de_tarjeta(mensaje):
@@ -65,7 +73,7 @@ async def generate_reply(mensaje: str, thread_id: str) -> str:
     agent = create_agent(
         model,
         tools=tools,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=SYSTEM_PROMPT + (render_bloque_perfil(perfil) if perfil else ""),
         checkpointer=checkpointer,
         middleware=build_pii_guardrail(),  # redacta email/telefono, bloquea tarjeta
     )

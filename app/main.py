@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,6 +10,7 @@ from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import close_engine, get_sessionmaker
+from app.memory.long_term.consolidacion import close_redis, sweeper
 from app.memory.short_term.session_memory import close_checkpointer, get_checkpointer
 
 settings = get_settings()
@@ -23,10 +26,16 @@ async def lifespan(app: FastAPI):
     # Inicializa el checkpointer de Redis (memoria de corto plazo): conecta y crea los
     # indices RediSearch. Si Redis no esta disponible, el arranque falla aca.
     await get_checkpointer()
-    # Pool de Postgres (tiendas/clientes). El esquema lo crea `alembic upgrade head`.
+    # Pool de Postgres (tiendas, clientes, perfiles). El esquema lo crea `alembic upgrade head`.
     async with get_sessionmaker()() as db:
         await db.execute(text("SELECT 1"))
+    # Consolida la memoria de largo plazo de las sesiones inactivas antes de que venza su TTL.
+    tarea_sweeper = asyncio.create_task(sweeper())
     yield
+    tarea_sweeper.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await tarea_sweeper
+    await close_redis()
     await close_checkpointer()
     await close_engine()
 

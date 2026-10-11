@@ -20,7 +20,7 @@ def _jwt_secret(monkeypatch):
 def llamadas(monkeypatch):
     registro = []
 
-    async def _fake_generate_reply(mensaje, thread_id):
+    async def _fake_generate_reply(mensaje, thread_id, perfil=None):
         registro.append((mensaje, thread_id))
         return "respuesta fake"
 

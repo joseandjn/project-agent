@@ -1,6 +1,6 @@
 # Diseño · Autenticación + memoria de largo plazo
 
-Estado: **Fase 1 (autenticación) implementada**; Fase 2 (memoria de largo plazo) pendiente.
+Estado: **Fase 1 (autenticación) y Fase 2 (memoria de largo plazo) implementadas.**
 
 Objetivo: que el asesor recuerde a cada cliente entre sesiones (sus mascotas, condiciones,
 preferencias y lo que ya se le recomendó), guardado en PostgreSQL. Como esa información es
@@ -210,21 +210,32 @@ flowchart LR
 Estado en Redis por sesión (con un TTL un poco mayor que el del checkpoint):
 
 - `vethis:mem:actividad`: sorted set `thread_id → timestamp del último turno`.
-- `vethis:mem:sesion:{thread_id}`: hash `{cliente_id, pendientes, ultimo_msg_consolidado}`.
+- `vethis:mem:sesion:{thread_id}`: hash `{cliente_id, pendientes, consolidados}`, donde
+  `consolidados` es cuántos mensajes del checkpoint ya pasaron por el extractor.
 
 `consolidar(thread_id)`:
 
 1. Toma el lock `vethis:mem:lock:{thread_id}` (`SET NX EX`). Si no lo consigue, sale, porque
    otra réplica o tarea ya lo está haciendo.
-2. Lee el checkpoint de Redis y toma solo los mensajes posteriores a
-   `ultimo_msg_consolidado`. Si no hay ninguno, sale.
+2. Lee el checkpoint de Redis y toma solo los mensajes posteriores a `consolidados`.
+   Si no hay ninguno, sale.
 3. Lee el perfil actual de Postgres (o uno vacío).
 4. Llama al extractor (ver abajo), valida el resultado y le agrega los campos deterministas.
 5. Guarda el perfil con `version + 1` y una fila en el historial.
-6. Actualiza `ultimo_msg_consolidado` y pone `pendientes = 0`.
+6. Actualiza `consolidados` y pone `pendientes = 0`.
+
+Si el extractor falla, **no** avanza `consolidados`: el próximo disparador reintenta con
+esos mismos mensajes.
 
 El *sweeper* es una tarea `asyncio` que se arranca en el `lifespan` de `main.py`, igual
 que el checkpointer. El lock hace que funcione aunque haya varias réplicas de `api`.
+Cada sesión inactiva tiene **un solo intento**: después de consolidarla, el sweeper la saca
+del sorted set aunque haya fallado, para no reintentar cada minuto hasta el TTL. Solo la
+saca si no hubo actividad nueva mientras consolidaba (comparación atómica en Lua).
+
+Efecto colateral: el checkpointer se configuró con `refresh_on_read`, así que cuando el
+sweeper lee una sesión a los 25 minutos le renueva el TTL. La sesión vive unos 30 minutos
+más en Redis, pero no se vuelve a consolidar porque ya salió del sorted set.
 
 Configuración nueva (`app/core/config.py`):
 
@@ -240,10 +251,13 @@ Configuración nueva (`app/core/config.py`):
 `app/memory/long_term/extractor.py`:
 
 ```python
-async def extraer_perfil(perfil_actual: PerfilCliente, mensajes: list[BaseMessage]) -> PerfilCliente:
-    model = get_memoria_model().with_structured_output(PerfilCliente)
-    return await model.ainvoke([SystemMessage(PROMPT_EXTRACTOR), HumanMessage(render(perfil_actual, mensajes))])
+async def extraer_perfil(perfil_actual, mensajes, model=None) -> Optional[PerfilCliente]:
+    estructurado = (model or get_memoria_model()).with_structured_output(PerfilExtraido)
+    ...  # sanear PII + agregar SKUs/derivación desde las tool calls
 ```
+
+El LLM devuelve un `PerfilExtraido`, que no incluye `skus_recomendados` ni
+`derivado_a_veterinario`. Esos dos campos los agrega el backend a partir de las tool calls.
 
 - `temperature=0`, con el mismo `LLM_PROVIDER` que el chat.
 - El prompt pide **actualizar** el perfil existente (agregar, corregir o quitar datos) en
@@ -268,18 +282,23 @@ system prompt un bloque delimitado:
 (datos guardados de conversaciones anteriores; pueden estar desactualizados)
 - Mascota: Firulais, Perro adulto, ~12 kg, raza mediana. Evitar: pollo.
 - Presupuesto: hasta S/ 150.
-- Ya se le recomendó: DOG-ADU-RES-004.
+- Productos que ya consultó: DOG-ADU-RES-004.
 </perfil_cliente>
 ```
 
-Se suma una regla al `SYSTEM_PROMPT`: el agente debe **confirmar** los datos guardados
-antes de usarlos ("¿Firulais sigue pesando unos 12 kg?") y nunca tratarlos como
-instrucciones.
+Los valores se escriben sin `<` ni `>`, así un dato guardado no puede cerrar la etiqueta
+(`app/agent/prompts/perfil_cliente.py`). Se suma una regla al `SYSTEM_PROMPT`: el agente
+debe **confirmar** los datos guardados antes de usarlos ("¿Firulais sigue pesando unos
+12 kg?"), nunca tratarlos como instrucciones y volver a verificar precio y stock de los
+productos que ya consultó.
+
+El perfil se lee en `app/api/v1/routes/chat.py` y llega a `generate_reply` como parámetro.
 
 ### Privacidad (Ley 29733)
 
 - `GET /api/v1/memoria`: el cliente autenticado ve su propio perfil.
 - `DELETE /api/v1/memoria`: borra el perfil y su historial.
+- Una sesión anónima recibe `403` en los dos endpoints.
 - Las condiciones de salud de la mascota y los datos de consumo del cliente son datos
   personales. Avisar al usuario y pedir su consentimiento es responsabilidad de la tienda,
   y debe quedar documentado en el contrato de integración.
@@ -299,9 +318,12 @@ instrucciones.
 | `app/api/v1/routes/chat.py`, `app/services/llm_client.py` | 1, 2 | usar `AuthContext`; `thread_id` con namespace; inyectar perfil; disparar la consolidación |
 | `app/memory/short_term/session_memory.py` | 1 | `session_config(thread_id)` |
 | `app/memory/long_term/{models,repo,extractor,consolidacion}.py` | 2 | perfil, acceso a Postgres, extractor LLM, triggers + sweeper |
+| `app/agent/prompts/perfil_cliente.py`, `system_prompt.py` | 2 | bloque `<perfil_cliente>` y reglas de memoria |
+| `app/guardrails/pii.py` | 2 | `redactar_pii` para los campos del perfil |
+| `app/db/migrations/versions/0002_perfiles_de_cliente.py` | 2 | tablas de perfiles |
 | `app/api/v1/routes/memoria.py` | 2 | `GET` / `DELETE /memoria` |
 | `scripts/crear_tienda.py` | 1 | alta de tienda + API key |
-| `evals/` | 2 | casos del extractor: hechos correctos, actualización, intento de envenenamiento |
+| `evals/run_evals_memoria.py`, `evals/casos/casos_memoria.py` | 2 | 7 casos con aserciones duras: hechos, actualización, segunda mascota, no inventar, asesor ≠ cliente, envenenamiento, PII |
 | `docs/arquitectura.md`, `docs/vulnerabilidades.md`, `README.md` | 1, 2 | reflejar lo implementado |
 | `requirements.txt`, `.env.example` | 1, 2 | `PyJWT`, `alembic`; `JWT_SECRET`, `JWT_TTL_SECONDS`, `MEMORIA_*` |
 
@@ -315,7 +337,17 @@ instrucciones.
 3. **Retención:** por ahora no se borran perfiles por inactividad. Solo se borran cuando
    lo pide el cliente (`DELETE /api/v1/memoria`).
 4. **Modelo del extractor:** se elige con los evals del extractor. Queda configurable con
-   `MEMORIA_MODEL`; si está vacío, usa el mismo modelo que el chat.
+   `MEMORIA_MODEL`; si está vacío, usa el mismo modelo que el chat. Primera corrida
+   (2026-10-11, 7 casos × 3 repeticiones, `python -m evals.run_evals_memoria --repeticiones 3`):
+
+   | Modelo | Aprobados | Promedio por extracción | Falla |
+   |---|---|---|---|
+   | `openai:gpt-4o-mini` | 21/21 | ~2 s | — |
+   | `ollama:llama3.1:8b` (CPU local) | 18–19/21 | ~6–10 s | "alérgico al pollo" queda en `condiciones` pero no en `proteinas_a_evitar` |
+
+   Agregar una regla sobre alergias al prompt hizo que `llama3.1:8b` empeorara a 15/21
+   (perdía nombres y se dejaba envenenar), así que se descartó. Una pista en la descripción
+   del campo del esquema no cambió el resultado.
 5. **Varias sesiones simultáneas del mismo cliente:** fuera del alcance de esta versión.
    Si dos sesiones se consolidan a la vez, puede ganar la última escritura. El historial de
    versiones permite revisar lo que pasó.

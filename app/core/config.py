@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import List, Optional
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,6 +41,16 @@ class Settings(BaseSettings):
     jwt_secret: Optional[str] = None
     jwt_ttl_seconds: int = 3600  # 1 h; se renueva con POST /api/v1/auth/refresh
 
+    # --- Memoria de largo plazo (perfil de cliente en Postgres, docs/memoria_largo_plazo.md) ---
+    memoria_consolidar_cada_n_turnos: int = 5
+    # Una sesion inactiva se consolida antes de que Redis borre su checkpoint: tiene que ser
+    # menor que SESSION_TTL_SECONDS (se valida abajo).
+    memoria_inactividad_segundos: int = 1500
+    memoria_sweep_intervalo_segundos: int = 60
+    # Modelo del extractor (mismo LLM_PROVIDER). Vacio => el mismo modelo del chat. Se elige
+    # con evals/run_evals_memoria.py.
+    memoria_model: Optional[str] = None
+
     # --- Langfuse (self-hosted, observabilidad) ---
     langfuse_host: str = "http://localhost:3000"
     langfuse_public_key: Optional[str] = None
@@ -50,6 +61,15 @@ class Settings(BaseSettings):
     # apuntar a un modelo mas grande solo para evaluar (ej. un Ollama local mas capaz)
     # sin cambiar el modelo que sirve el chat real.
     eval_judge_model: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _inactividad_menor_que_ttl(self) -> "Settings":
+        if self.memoria_inactividad_segundos >= self.session_ttl_seconds:
+            raise ValueError(
+                "MEMORIA_INACTIVIDAD_SEGUNDOS debe ser menor que SESSION_TTL_SECONDS: si no, Redis "
+                "borra la sesion antes de que se consolide"
+            )
+        return self
 
     @property
     def allowed_origins_list(self) -> List[str]:

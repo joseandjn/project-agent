@@ -41,6 +41,13 @@ flowchart TB
         end
 
         cp["AsyncShallowRedisSaver<br/>checkpointer — thread_id = tienda:sesión — TTL 30 min"]
+
+        subgraph longmem["Memoria de largo plazo — app/memory/long_term"]
+            direction TB
+            cons["consolidar(thread_id)<br/>cada 5 turnos (background) — sweeper por inactividad"]
+            extr["extraer_perfil<br/>LLM con salida estructurada + PII + SKUs de tool calls"]
+            memr["GET / DELETE /api/v1/memoria"]
+        end
     end
 
     subgraph prov["Proveedor de LLM — LLM_PROVIDER"]
@@ -54,7 +61,7 @@ flowchart TB
         direction TB
         redis[("Redis 8 + RediSearch<br/>memoria de sesión")]
         fs["Ficheros data/<br/>catálogo — conocimiento<br/>derivaciones/DER-*.json — scoring/feedback.json"]
-        pg[("PostgreSQL + pgvector<br/>tiendas — clientes (Alembic)")]
+        pg[("PostgreSQL + pgvector<br/>tiendas — clientes — perfiles (Alembic)")]
     end
 
     subgraph pend["Pendiente (blueprint, sin código)"]
@@ -63,7 +70,6 @@ flowchart TB
         obs["Observabilidad<br/>Langfuse — OpenTelemetry"]
         gw["Gateway nginx — CI Jenkins — canary"]
         etl["ETL de catálogo<br/>export BD → Pydantic → embeddings"]
-        longmem["Memoria de largo plazo<br/>perfil de cliente — Fase 2"]
     end
 
     tback -->|"X-API-Key + external_user_id"| authr
@@ -96,11 +102,16 @@ flowchart TB
     gen -.-> obs
     agente -.-> lg
     fs -.-> etl
-    longmem -.-> pg
-    gen -.-> longmem
+    route -->|"lee perfil → system prompt"| pg
+    route -->|"turno N"| cons
+    cons -->|"lee mensajes del checkpoint"| redis
+    cons --> extr
+    extr -->|"chat"| ollama
+    cons -->|"guarda versión"| pg
+    memr --> pg
 
     classDef pendiente fill:#f4f4f4,stroke:#999,stroke-dasharray:4,color:#555;
-    class lg,obs,gw,etl,longmem pendiente;
+    class lg,obs,gw,etl pendiente;
 ```
 
 ---
@@ -126,7 +137,10 @@ sequenceDiagram
         R-->>W: 401
     end
     Note over R: get_auth_context: tienda, sesión y cliente salen del token
-    R->>G: generate_reply(mensaje, thread_id = tienda:sesión)
+    opt cliente autenticado
+        R->>R: leer_perfil(cliente_id) desde Postgres
+    end
+    R->>G: generate_reply(mensaje, thread_id, perfil)
     G->>P: contiene_numero_de_tarjeta(mensaje)?
     alt hay número de tarjeta
         P-->>W: respuesta fija (no entra al agente ni a Redis)
@@ -146,6 +160,9 @@ sequenceDiagram
         A-->>G: último mensaje
         G-->>W: respuesta, session_id
     end
+    opt cliente autenticado y turno N sin consolidar
+        R-)R: BackgroundTask consolidar(thread_id) → extractor → perfil en Postgres
+    end
 ```
 
 ---
@@ -158,6 +175,6 @@ sequenceDiagram
 | `vethis-redis` | `redis:8-alpine` | memoria de sesión (checkpointer, necesita RediSearch) | 6379 |
 | `vethis-ollama` | `ollama/ollama` | embeddings (y chat si `LLM_PROVIDER=ollama`) | 11434 |
 | `vethis-ollama-pull` | `ollama/ollama` | job de un solo uso: descarga los modelos | — |
-| `vethis-postgres` | `pgvector/pgvector:pg16` | tiendas y clientes (autenticación); memoria de largo plazo pendiente | 5432 |
+| `vethis-postgres` | `pgvector/pgvector:pg16` | tiendas y clientes (autenticación), perfiles de cliente (memoria de largo plazo) | 5432 |
 
 Sin gateway, sin CI, sin orquestador: todo en una máquina con `docker compose`.
