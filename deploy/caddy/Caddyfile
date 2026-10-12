@@ -1,6 +1,18 @@
 # HTTPS automatico (Let's Encrypt) para el dominio de la demo; DOMAIN sale del .env del
 # servidor (p. ej. vethis-demo.eastus2.cloudapp.azure.com). Ver docs/despliegue_azure.md.
+#
+# Rutas de la API (FastAPI) -> api:8000. Todo lo demas -> chat:3000 (perfil "chat"; sin el
+# chat, "/" responde 502). Las rutas propias del chat (/api/sesion, /api/chat,
+# /api/feedback) no chocan con las de la API (/api/v1, /api/v2).
 {$DOMAIN} {
 	encode gzip
-	reverse_proxy api:8000
+
+	@api path /api/v1/* /api/v2/* /docs /docs/* /openapi.json /health
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy chat:3000
+	}
 }

@@ -9,6 +9,11 @@
 #
 # Variables requeridas en el .env del servidor: DOMAIN, POSTGRES_PASSWORD, REDIS_PASSWORD,
 # JWT_SECRET, OPENAI_API_KEY (y las de Langfuse si se usa).
+#
+# Chat (opcional, perfil "chat"): repo vethis-chat clonado al lado de este
+# (../vethis-chat) y CHAT_API_KEY en el .env (API key de una tienda). Con el chat:
+#   docker compose -f docker-compose.prod.yml --profile chat up -d --build
+# Caddy sirve el chat en "/" y la API en /api/v1, /api/v2, /docs y /health.
 
 services:
 
@@ -62,6 +67,21 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  chat:
+    # Next.js + assistant-ui (https://github.com/joseandjn/vethis-chat). Habla con la API por
+    # la red interna; la API key de la tienda queda en el servidor, nunca en el navegador.
+    profiles: ["chat"]
+    build:
+      context: ../vethis-chat
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://api:8000
+      VETHIS_API_KEY: ${CHAT_API_KEY:?falta CHAT_API_KEY en .env (perfil chat)}
+    expose:
+      - "3000"
+    depends_on:
+      - api
 
   caddy:
     image: caddy:2.8.4-alpine

@@ -327,6 +327,33 @@ En Langfuse (us.cloud.langfuse.com → Tracing) aparece la traza `chat_v2` con e
 
 ---
 
+## Paso 8 · (Opcional) El chat web
+
+El chat de [`vethis-chat`](https://github.com/joseandjn/vethis-chat) (Next.js +
+assistant-ui) se sirve en la misma URL: Caddy manda `/` al chat y `/api/v1`, `/api/v2`,
+`/docs` y `/health` a la API. La API key de la tienda queda en el servidor; el navegador solo
+recibe una cookie `httpOnly` con su token.
+
+Dentro del servidor:
+
+```bash
+cd ~
+git clone https://github.com/joseandjn/vethis-chat.git      # al lado de project-agent
+cd project-agent
+git pull
+
+# API key de una tienda para el chat, directo al .env (no se muestra en pantalla)
+KEY=$(docker compose -f docker-compose.prod.yml exec -T api python -m scripts.crear_tienda "Tienda Chat" | grep -o 'vth_[A-Za-z0-9_-]*')
+echo "CHAT_API_KEY=$KEY" >> .env && unset KEY
+
+docker compose -f docker-compose.prod.yml --profile chat up -d --build
+```
+
+Abre `https://<DOMAIN>/` en el navegador. Para actualizar después: `git pull` en
+`~/vethis-chat` y en `~/project-agent`, y el mismo `up -d --build` con `--profile chat`.
+
+---
+
 ## Actualizar la demo
 
 Después de hacer `git push` desde tu Mac:
