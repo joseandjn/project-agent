@@ -56,6 +56,18 @@ Archivos del repo que se usan:
    limitado: revisa las condiciones vigentes.
 2. Entra al portal: <https://portal.azure.com>.
 
+> **Si dice "No cumple los requisitos para obtener una cuenta gratuita"** (por ejemplo,
+> porque esa cuenta, tarjeta o teléfono ya usó una prueba antes), elige **"Regístrese para
+> obtener Azure con los precios de pago por uso"**. La guía es la misma; solo no hay crédito
+> de prueba. Costo aproximado de la demo **por 48 horas y borrando todo al final: USD 2,50–3**
+> (B2s ~USD 0,04/h + disco + IP; confirma en <https://azure.microsoft.com/pricing/calculator>).
+> Si se olvida prendida, son ~USD 35–40 al mes: el presupuesto solo avisa, no corta.
+>
+> Si el portal muestra *"La cuenta de usuario seleccionada no existe en el inquilino
+> Microsoft Services"*, el registro de Azure no terminó: complétalo y elige **Cuenta
+> personal** al iniciar sesión. Si muestra *AADSTS50058*, el navegador bloquea las cookies de
+> `login.microsoftonline.com`: permítelas o usa Edge o Chrome.
+
 ### 1.2 Alerta de presupuesto en Azure (hazlo primero)
 
 En Azure es fácil dejar algo prendido y recibir una factura. Antes de crear nada:
@@ -88,7 +100,7 @@ La API todavía no tiene rate limit: cualquiera con un token puede generar consu
    | Region | `East US 2`. Cualquier región sirve; las de EE. UU. suelen ser más baratas y Langfuse está en US. |
    | Availability options | No infrastructure redundancy required |
    | Image | **Ubuntu Server 24.04 LTS - x64 Gen2** |
-   | Size | **Standard_B2s** (2 vCPU, 4 GiB). Si no está disponible, uno similar con 4 GiB. |
+   | Size | **Ver todos los tamaños** → buscar `B2` → **Standard_B2s** o **Standard_B2als_v2** (2 vCPU, 4 GiB, ~USD 27–38 al mes). El que propone el portal por defecto (p. ej. `Standard_D2s_v3`, ~USD 70) es más grande de lo necesario. No usar tamaños de 1–2 GiB. |
    | Authentication type | **SSH public key** |
    | Username | `azureuser` |
    | SSH public key source | Generate new key pair |
@@ -106,6 +118,35 @@ La API todavía no tiene rate limit: cualquiera con un token puede generar consu
    máquina.
 7. Espera a que termine ("Your deployment is complete") → **Go to resource**.
 
+> El **costo mensual estimado** del panel derecho es lo que costaría la VM prendida el mes
+> entero (730 h). No se cobra por adelantado: se factura por el tiempo de uso.
+
+### 2.0 Si aparece un error de cuota (`QuotaExceeded`)
+
+Las suscripciones nuevas de pago por uso suelen tener **cuota 0** de vCPU para algunas
+familias. El error se ve así:
+
+```
+No se pudo completar la operación porque supera la cuota de standardBsv2Family Cores
+aprobada. ... Ubicación: eastus2, Límite actual: 0, ... Nuevo límite requerido: 2.
+```
+
+Opciones:
+
+1. **Pedir el aumento (recomendado):** abre el link `https://aka.ms/ProdportalCRP/...` del
+   propio mensaje, que viene con región, familia y límite **2** cargados → **Enviar**.
+   Pedidos chicos suelen aprobarse solos en minutos; a veces se abre un caso de soporte y
+   tarda horas. No tiene costo. Cuando quede aprobado, vuelve a **Revisar y crear**.
+2. **Usar una familia o región con cuota:** portal → **Cuotas → Proceso**, filtra por
+   suscripción y región (`East US 2`, `East US`, `Central US`) y busca una familia con límite
+   de al menos 2: *Standard BS Family* (`Standard_B2s`), *Standard Bsv2 Family*
+   (`Standard_B2als_v2`) o *Standard DASv5 Family* (`Standard_D2as_v5`, 8 GiB,
+   ~USD 0,09/h). Si cambias de región, el dominio del paso 2.1 cambia
+   (`vethis-demo.<region>.cloudapp.azure.com`).
+
+Si el tamaño muestra *"no está disponible actualmente en <región> para la suscripción
+(NotAvailableForSubscription)"*, elige otro tamaño de la tabla o cambia de región.
+
 ### 2.1 Nombre DNS (para el HTTPS)
 
 1. En la página de la VM, en **Overview**, busca **DNS name** → **Not configured** (clic).
@@ -117,6 +158,19 @@ La API todavía no tiene rate limit: cualquiera con un token puede generar consu
 
 1. En la VM: **Networking** (o **Network settings**) → regla de entrada **SSH (22)**.
 2. **Source:** `My IP address` → **Save**.
+
+### 2.3 Comprobar las reglas de HTTP y HTTPS
+
+Caddy necesita los puertos **80** (Let's Encrypt valida el dominio por ahí y redirige a
+HTTPS) y **443**. Si en el paso 2 no quedaron marcados:
+
+1. En la VM → **Redes → Configuración de red → Crear regla de puerto → Regla de puerto de
+   entrada**.
+2. Origen **Any**, puertos de origen `*`, destino **Any**, **Servicio: HTTP**, acción
+   **Permitir**, prioridad `310`, nombre `Allow-HTTP` → **Agregar**.
+3. Repite con **Servicio: HTTPS**, prioridad `320`, nombre `Allow-HTTPS`.
+
+Al final: **22** solo desde tu IP; **80** y **443** desde *Any*. No abras 5432, 6379 ni 8000.
 
 Así solo tu conexión puede intentar entrar por SSH. Si cambias de red (otra casa, el
 celular), vuelve a este paso.
@@ -328,11 +382,13 @@ Las migraciones nuevas corren solas al arrancar la API. Los datos de Postgres se
 | `permission denied ... docker.sock` | Falta volver a entrar después de `usermod` | Salir con `exit` y entrar de nuevo |
 | `falta POSTGRES_PASSWORD en .env` (o `REDIS_PASSWORD`, `DOMAIN`) | Variable vacía | `nano .env` |
 | `JWT_SECRET no esta configurado o tiene menos de 32 bytes` | Falta o es corto | `JWT_SECRET` en `.env` |
-| Caddy no obtiene el certificado | DNS no configurado, o puertos 80/443 cerrados | Paso 2.1, reglas HTTP/HTTPS en Networking, `logs caddy` |
+| Caddy no obtiene el certificado | DNS no configurado, o puertos 80/443 cerrados | Pasos 2.1 y 2.3, `logs caddy` |
 | El navegador avisa que el sitio no es seguro | Todavía no hay certificado | Esperar 1–2 min y revisar `logs caddy` |
 | `/chat` responde 500 | Ver el error en `logs api` | Muchas veces `OPENAI_API_KEY` o el límite de gasto alcanzado |
 | `401` en `/auth/token` | API key equivocada (¿la de local?) | Usar la creada en el Paso 6 |
 | El build se queda sin memoria | VM con menos de 4 GB | Tamaño B2s o mayor |
+| `QuotaExceeded` al crear la VM | Cuota 0 de esa familia en la región | Paso 2.0 |
+| `NotAvailableForSubscription` en el tamaño | Tamaño restringido en esa región | Otro tamaño de 4 GiB u otra región (paso 2.0) |
 
 Para ver los logs en vivo: `docker compose -f docker-compose.prod.yml logs -f api` (salir con
 `Ctrl+C`). Si algo no cierra, copia el error y lo revisamos.
