@@ -77,7 +77,9 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_URL: http://api:8000
-      VETHIS_API_KEY: ${CHAT_API_KEY:?falta CHAT_API_KEY en .env (perfil chat)}
+      # Opcional en la validacion de compose (si no, el stack sin chat no arranca); si falta,
+      # el chat responde con un error claro (lib/backend.ts).
+      VETHIS_API_KEY: ${CHAT_API_KEY:-}
     expose:
       - "3000"
     depends_on:
