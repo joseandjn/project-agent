@@ -19,7 +19,7 @@ from typing import Optional
 
 from app.core.config import get_settings
 from app.memory.long_term.extractor import extraer_perfil
-from app.services.llm_client import build_chat_model
+from app.services.config_llm import build_chat_model
 from evals.casos.casos_memoria import CASOS_MEMORIA
 
 REPORTES_DIR = Path(__file__).resolve().parent / "reportes"

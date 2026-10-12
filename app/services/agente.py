@@ -26,7 +26,8 @@ from app.guardrails.pii import build_pii_guardrail, contiene_numero_de_tarjeta
 from app.memory.long_term.models import PerfilCliente
 from app.memory.short_term.session_memory import get_checkpointer, session_config
 from app.observability.langfuse import callbacks
-from app.services.llm_client import RESPUESTA_TARJETA_BLOQUEADA, get_chat_model
+from app.services.config_llm import get_chat_model
+from app.services.llm_client import RESPUESTA_TARJETA_BLOQUEADA
 from app.tools.langchain_tools import TOOLS_CON_CONTEXTO
 
 _agente: Optional[CompiledStateGraph] = None

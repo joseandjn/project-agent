@@ -25,7 +25,7 @@ from app.core.config import get_settings
 from app.guardrails.pii import contiene_numero_de_tarjeta, redactar_pii
 from app.memory.long_term.models import PerfilCliente, PerfilExtraido
 from app.observability.langfuse import callbacks
-from app.services.llm_client import build_chat_model
+from app.services.config_llm import build_chat_model
 from app.tools.catalog import get_producto_by_sku
 
 logger = logging.getLogger(__name__)
