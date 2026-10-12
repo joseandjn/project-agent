@@ -10,3 +10,4 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     respuesta: str
     session_id: str
+    mensaje_id: str = Field(..., description="Id de esta respuesta, para votarla en POST /api/v1/feedback")

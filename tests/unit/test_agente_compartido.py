@@ -159,7 +159,7 @@ async def test_tarjeta_se_corta_antes_del_agente(modelo):
 
 
 @pytest.fixture
-def llamadas_v2(monkeypatch):
+def llamadas_v2(monkeypatch, sin_registro_feedback):
     monkeypatch.setattr(get_settings(), "jwt_secret", "secreto-de-test-de-al-menos-32-bytes!!")
     registro = []
 
@@ -186,5 +186,7 @@ async def test_v2_la_sesion_sale_del_token(llamadas_v2):
     ctx = AuthContext(tienda_id=uuid.uuid4(), session_id=uuid.uuid4(), cliente_id=None)
     r = await _post_v2({"mensaje": "hola"}, {"Authorization": f"Bearer {emitir_token(ctx)}"})
     assert r.status_code == 200
-    assert r.json() == {"respuesta": "respuesta v2", "session_id": str(ctx.session_id)}
+    body = r.json()
+    assert body["respuesta"] == "respuesta v2" and body["session_id"] == str(ctx.session_id)
+    assert uuid.UUID(body["mensaje_id"])
     assert llamadas_v2 == [("hola", ctx.thread_id)]

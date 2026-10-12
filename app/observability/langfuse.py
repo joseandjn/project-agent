@@ -99,6 +99,14 @@ def callbacks() -> List[BaseCallbackHandler]:
     return [CallbackHandler()]
 
 
+def id_de_traza(mensaje_id: uuid.UUID) -> str:
+    """Id de traza de Langfuse derivado del `mensaje_id` del turno: el feedback se liga a la
+    traza sin guardar un mapeo (docs/feedback_cliente.md). No necesita el cliente."""
+    from langfuse import Langfuse
+
+    return Langfuse.create_trace_id(seed=str(mensaje_id))
+
+
 @contextmanager
 def trazar(
     nombre: str,
@@ -106,11 +114,13 @@ def trazar(
     thread_id: str,
     cliente_id: Optional[uuid.UUID] = None,
     entrada: Any = None,
+    mensaje_id: Optional[uuid.UUID] = None,
 ) -> Iterator[Optional[Any]]:
     """Abre la traza de un turno o de una consolidacion. Devuelve la observacion raiz (para
     `.update(output=...)`) o None si Langfuse esta deshabilitado.
 
-    `thread_id` es `{tienda_id}:{session_id}` (AuthContext.thread_id): de ahi sale la tienda."""
+    `thread_id` es `{tienda_id}:{session_id}` (AuthContext.thread_id): de ahi sale la tienda.
+    Con `mensaje_id`, el id de la traza es `id_de_traza(mensaje_id)`."""
     lf = get_langfuse()
     if lf is None:
         yield None
@@ -119,7 +129,10 @@ def trazar(
     from langfuse import propagate_attributes
 
     tienda_id = thread_id.split(":", 1)[0]
-    with lf.start_as_current_observation(name=nombre, as_type="agent", input=entrada) as observacion:
+    contexto = {"trace_id": id_de_traza(mensaje_id)} if mensaje_id else None
+    with lf.start_as_current_observation(
+        name=nombre, as_type="agent", input=entrada, trace_context=contexto
+    ) as observacion:
         with propagate_attributes(
             session_id=thread_id,
             user_id=str(cliente_id) if cliente_id else None,
@@ -127,3 +140,23 @@ def trazar(
             tags=[f"tienda:{tienda_id}"],
         ):
             yield observacion
+
+
+def registrar_feedback(mensaje_id: uuid.UUID, valor: str, motivo: Optional[str]) -> None:
+    """Score `feedback_cliente` (1 positivo / 0 negativo, motivo en el comentario) en la traza
+    del turno. Mismo `score_id` por mensaje: si el cliente cambia el voto, se reemplaza.
+    Nunca levanta: el voto ya quedo guardado en Postgres."""
+    lf = get_langfuse()
+    if lf is None:
+        return
+    try:
+        lf.create_score(
+            name="feedback_cliente",
+            value=1 if valor == "positivo" else 0,
+            data_type="BOOLEAN",
+            trace_id=id_de_traza(mensaje_id),
+            score_id=f"feedback-{mensaje_id}",
+            comment=motivo,
+        )
+    except Exception:
+        logger.exception("No se pudo enviar el feedback a Langfuse")

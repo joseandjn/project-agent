@@ -1,14 +1,27 @@
 """Tablas de Postgres (SQLAlchemy 2.0). El esquema real lo crean las migraciones de Alembic
 (`app/db/migrations/`); estas clases son la fuente que usa `alembic revision --autogenerate`.
 
-Diseño: docs/memoria_largo_plazo.md (Fase 1: `tiendas` y `clientes`; Fase 2: perfiles).
+Diseño: docs/memoria_largo_plazo.md (Fase 1: `tiendas` y `clientes`; Fase 2: perfiles) y
+docs/feedback_cliente.md (`feedback_mensajes`).
 """
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import ARRAY, BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    ARRAY,
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -77,3 +90,33 @@ class PerfilClienteHistorial(Base):
     perfil: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
     thread_id: Mapped[str] = mapped_column(Text, nullable=False)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class FeedbackMensaje(Base):
+    """Voto del cliente (positivo/negativo, motivo opcional) sobre una respuesta del agente.
+    Un voto por mensaje: si vuelve a votar, se reemplaza. `skus` son los productos que el
+    agente consulto en ese turno (de las tool calls, no de lo que diga el cliente)."""
+
+    __tablename__ = "feedback_mensajes"
+    __table_args__ = (
+        CheckConstraint("valor IN ('positivo', 'negativo')", name="ck_feedback_valor"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    tienda_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tiendas.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Nulo en sesiones anonimas.
+    cliente_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="CASCADE"), nullable=True
+    )
+    thread_id: Mapped[str] = mapped_column(Text, nullable=False)
+    mensaje_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, unique=True)
+    valor: Mapped[str] = mapped_column(String(8), nullable=False)
+    motivo: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    comentario: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    skus: Mapped[List[str]] = mapped_column(ARRAY(Text), nullable=False, server_default="{}")
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )

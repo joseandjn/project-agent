@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     # con evals/run_evals_memoria.py.
     memoria_model: Optional[str] = None
 
+    # --- Feedback del cliente (docs/feedback_cliente.md) ---
+    # Cuanto tiempo despues de una respuesta se la puede votar.
+    feedback_ventana_segundos: int = 86400
+
     # --- Langfuse Cloud (trazas, docs/observabilidad_langfuse.md) ---
     # Apagado por defecto (tests, evals): se prende con LANGFUSE_ENABLED=true + las dos claves.
     langfuse_enabled: bool = False

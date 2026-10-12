@@ -17,7 +17,7 @@ def _jwt_secret(monkeypatch):
 
 
 @pytest.fixture
-def llamadas(monkeypatch):
+def llamadas(monkeypatch, sin_registro_feedback):
     registro = []
 
     async def _fake_generate_reply(mensaje, thread_id, perfil=None):
@@ -55,5 +55,7 @@ async def test_la_sesion_sale_del_token_y_no_del_body(llamadas):
         {"Authorization": f"Bearer {emitir_token(ctx)}"},
     )
     assert r.status_code == 200
-    assert r.json() == {"respuesta": "respuesta fake", "session_id": str(ctx.session_id)}
+    body = r.json()
+    assert body["respuesta"] == "respuesta fake" and body["session_id"] == str(ctx.session_id)
+    assert uuid.UUID(body["mensaje_id"])  # id de la respuesta, para POST /feedback
     assert llamadas == [("hola", ctx.thread_id)]

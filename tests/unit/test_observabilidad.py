@@ -101,7 +101,7 @@ async def test_sesion_anonima_no_envia_user_id(exportador):
     assert "user.id" not in dict(_spans(exportador)["chat"].attributes)
 
 
-async def test_chat_traza_el_turno_aunque_langfuse_no_responda(exportador, monkeypatch):
+async def test_chat_traza_el_turno_aunque_langfuse_no_responda(exportador, monkeypatch, sin_registro_feedback):
     """/chat con Langfuse prendido (apuntando a un host que no responde): el turno se responde
     igual y queda una traza con la sesion del token y la entrada/salida enmascaradas."""
     import httpx
@@ -129,3 +129,47 @@ async def test_chat_traza_el_turno_aunque_langfuse_no_responda(exportador, monke
     assert "ana@mail.com" not in json.dumps(attrs, default=str)
     assert "[REDACTED_EMAIL]" in attrs["langfuse.observation.input"]
     assert "[REDACTED_EMAIL]" in attrs["langfuse.observation.output"]
+
+
+async def test_la_traza_del_turno_usa_el_id_derivado_del_mensaje(exportador):
+    from app.observability.langfuse import id_de_traza
+
+    mensaje_id = uuid.uuid4()
+    with trazar("chat", thread_id=THREAD, mensaje_id=mensaje_id):
+        pass
+    span = _spans(exportador)["chat"]
+    assert format(span.context.trace_id, "032x") == id_de_traza(mensaje_id)
+
+
+def test_feedback_se_envia_como_score_de_la_traza(monkeypatch):
+    from app.observability.langfuse import id_de_traza, registrar_feedback
+
+    llamadas = []
+
+    class _Cliente:
+        def create_score(self, **kwargs):
+            llamadas.append(kwargs)
+
+    monkeypatch.setattr(obs, "_cliente", _Cliente())
+    monkeypatch.setattr(obs, "_inicializado", True)
+    mensaje_id = uuid.uuid4()
+    registrar_feedback(mensaje_id, "negativo", "muy_caro")
+    registrar_feedback(mensaje_id, "positivo", None)
+
+    assert llamadas[0]["trace_id"] == id_de_traza(mensaje_id)
+    assert (llamadas[0]["value"], llamadas[0]["comment"]) == (0, "muy_caro")
+    assert llamadas[1]["value"] == 1
+    # Mismo score_id: cambiar el voto reemplaza el score, no suma otro.
+    assert llamadas[0]["score_id"] == llamadas[1]["score_id"]
+
+
+def test_feedback_no_rompe_si_langfuse_falla(monkeypatch):
+    from app.observability.langfuse import registrar_feedback
+
+    class _Roto:
+        def create_score(self, **kwargs):
+            raise RuntimeError("langfuse caido")
+
+    monkeypatch.setattr(obs, "_cliente", _Roto())
+    monkeypatch.setattr(obs, "_inicializado", True)
+    registrar_feedback(uuid.uuid4(), "positivo", None)  # no levanta

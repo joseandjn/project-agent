@@ -1,7 +1,7 @@
 # Diseño · Feedback del cliente
 
-Estado: **propuesta de diseño, pendiente de las [Preguntas abiertas](#preguntas-abiertas).**
-No hay nada implementado.
+Estado: **Fase 1 implementada** (votar respuestas, Postgres y score en Langfuse). Fases 2
+(ranking) y 3 (evals desde los 👎) pendientes. Ver [Implementación (Fase 1)](#implementación-fase-1).
 
 Objetivo: que el cliente pueda votar cada respuesta (👍/👎, con un motivo opcional) para:
 
@@ -119,9 +119,35 @@ Integración contra Postgres:
 
 ## Fases
 
-1. `mensaje_id` en `ChatResponse`, tabla y migración, `POST /feedback` y score en Langfuse.
+1. ✅ `mensaje_id` en `ChatResponse`, tabla y migración, `POST /feedback` y score en Langfuse.
 2. Ranking por tienda desde Postgres y migración de `feedback.json`.
 3. Script de borradores de eval a partir de los 👎.
+
+---
+
+## Implementación (Fase 1)
+
+| Pieza | Dónde |
+|---|---|
+| `mensaje_id` en la respuesta de `/api/v1/chat` y `/api/v2/chat` | `app/models/chat.py`, `app/api/v1/routes/chat.py`, `app/api/v2/routes/chat.py` |
+| Registro de cada respuesta en Redis (`vethis:fb:mensaje:{id}` → sesión, tienda, cliente, SKUs del turno; TTL `FEEDBACK_VENTANA_SEGUNDOS`, 24 h) | `app/feedback/registro.py` (`contar_mensajes`, `registrar_mensaje`) |
+| Validación del voto (motivos, comentario ≤ 500, tarjeta rechazada, email/teléfono redactados) | `app/models/feedback.py` |
+| `POST /api/v1/feedback` → 204; 404 si el mensaje es de otra sesión/tienda o venció; 401 sin token | `app/api/v1/routes/feedback.py`, `guardar_feedback` |
+| Tabla `feedback_mensajes` (upsert por `mensaje_id`) | `app/db/models.py`, migración `0003` |
+| Score `feedback_cliente` (BOOLEAN; motivo en el comentario; `score_id` fijo por mensaje) en la traza del turno | `app/observability/langfuse.py` (`id_de_traza`, `registrar_feedback`) |
+| Tests | `tests/unit/test_feedback_modelo.py`, `tests/unit/test_observabilidad.py`, `tests/integration/test_feedback.py` |
+
+Decisiones tomadas al implementar:
+
+- **SKUs del turno:** se cuentan los mensajes del checkpoint antes del turno y se toman las
+  tool calls de los que se agregaron después (`datos_de_tools`, solo SKUs del catálogo). Un
+  turno que no pasa por el agente (tarjeta bloqueada) queda sin SKUs.
+- **Id de la traza:** `Langfuse.create_trace_id(seed=mensaje_id)`. No se guarda un mapeo.
+- **Motivo solo con 👎** (pregunta abierta 2: se usa la lista propuesta).
+- **Votos anónimos:** se aceptan (`cliente_id` nulo). Si cuentan para el ranking se decide en
+  la Fase 2 (pregunta abierta 1).
+- Para verificar en Langfuse por API: `GET /api/public/v3/scores?traceId=…&fields=core,details,subject`
+  (las APIs de scores v1/v2 no están disponibles para organizaciones nuevas).
 
 ---
 

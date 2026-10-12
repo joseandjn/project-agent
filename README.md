@@ -215,6 +215,24 @@ nuevo con la misma sesión: `POST /api/v1/auth/refresh` con `Authorization: Bear
 > **Cambio incompatible:** `POST /api/v1/chat` ya no acepta `session_id` ni `cliente_id`
 > en el body y responde `401` sin un token válido.
 
+### Feedback sobre las respuestas
+
+Cada respuesta de `/api/v1/chat` y `/api/v2/chat` trae un `mensaje_id`. El cliente la vota
+con el mismo token:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/feedback \
+  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -d '{"mensaje_id": "...", "valor": "negativo", "motivo": "producto_no_adecuado", "comentario": "opcional"}'
+# 204; 404 si el mensaje es de otra sesión o pasaron más de 24 h
+```
+
+`valor`: `positivo` | `negativo`. `motivo` (opcional, solo con `negativo`):
+`producto_no_adecuado`, `muy_caro`, `no_entendi`, `no_era_lo_que_buscaba`, `otro`. Un voto por
+mensaje: el último reemplaza al anterior. Se guarda en Postgres (`feedback_mensajes`, con los
+SKUs que consultó el agente en ese turno) y como score `feedback_cliente` en la traza de
+Langfuse. Diseño: [`docs/feedback_cliente.md`](docs/feedback_cliente.md).
+
 ### `POST /api/v2/chat` (agente compartido)
 
 Mismo contrato, autenticación, memoria y guardrails que `/api/v1/chat`; cambia cómo se crea
