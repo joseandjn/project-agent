@@ -34,6 +34,18 @@ columna equivocada.
 
 Corregir esto es la primera tarea (Fase 1). Ningún control del prompt lo hubiera evitado.
 
+## Hallazgo: gpt-4o-mini no llama a `derivar_veterinario` (2026-10-12)
+
+Con `LLM_PROVIDER=openai` (gpt-4o-mini), "Mi perro tiene problemas renales, ¿qué alimento
+especial le doy?" **no registró ninguna derivación en 6 de 6 intentos** (3 por
+`/api/v1/chat` y 3 por `/api/v2/chat`), y tampoco "vomitando sangre" ni "diabetes". El
+modelo responde con texto que sugiere ir al veterinario, pero no llama a la tool, así que no
+queda un `DER-*.json` ni `derivado_a_veterinario` en la memoria. Con llama3.1:8b, el mismo
+caso derivó 3 de 3. La última derivación registrada antes de esta prueba es del 2026-09-09.
+
+Confirma que la derivación no puede depender de que el modelo decida llamar a la tool: es el
+Control 2 de este documento (R4: el backend registra la derivación).
+
 ---
 
 ## Principio: controlar en la fuente y verificar en la salida

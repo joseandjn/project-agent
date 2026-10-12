@@ -215,6 +215,20 @@ nuevo con la misma sesión: `POST /api/v1/auth/refresh` con `Authorization: Bear
 > **Cambio incompatible:** `POST /api/v1/chat` ya no acepta `session_id` ni `cliente_id`
 > en el body y responde `401` sin un token válido.
 
+### `POST /api/v2/chat` (agente compartido)
+
+Mismo contrato, autenticación, memoria y guardrails que `/api/v1/chat`; cambia cómo se crea
+el agente. v1 arma el agente en cada request (tools con la sesión en un closure y el perfil
+pegado al system prompt, ~8.5 ms de CPU por request). v2 lo crea **una vez al arrancar**
+(`app/services/agente.py`) y lo que cambia por turno viaja en el contexto
+(`agent.ainvoke(..., context=Contexto(thread_id, perfil))`, `app/agent/contexto.py`), que el
+LLM no ve:
+
+- `derivar_veterinario` lee el `thread_id` con `ToolRuntime` (`runtime.context`);
+- el bloque `<perfil_cliente>` lo agrega un middleware `@dynamic_prompt`.
+
+`/api/v1/chat` no cambia. En Langfuse, las trazas de v2 se llaman `chat_v2`, para comparar.
+
 ## Memoria de largo plazo
 
 Solo para clientes autenticados (token con `external_user_id`). El agente recuerda a cada
@@ -336,6 +350,8 @@ python -m graph_neo4j.queries
 
 - [x] `app/core/config.py` — settings con Pydantic leyendo `.env` (incluye `LLM_PROVIDER`: ollama/openai/anthropic)
 - [x] `app/api/v1/routes` — endpoint de chat (`POST /api/v1/chat`)
+- [x] `app/api/v2/routes` — `POST /api/v2/chat` con el agente compartido (creado una vez en
+      el lifespan; sesión y perfil por `context`, no por closure)
 - [x] **Autenticación** (Fase 1 de `docs/memoria_largo_plazo.md`) — JWT propio emitido con
       la API key de cada tienda (`POST /api/v1/auth/token`, `/auth/refresh`); `/chat` exige
       Bearer y saca sesión/cliente del token; `thread_id = {tienda}:{sesión}`; tablas

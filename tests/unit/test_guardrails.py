@@ -61,4 +61,4 @@ async def test_generate_reply_devuelve_mensaje_seguro_ante_tarjeta(monkeypatch):
 
     respuesta = await llm_client.generate_reply("mi tarjeta es 4111 1111 1111 1111", "s1")
     assert "tarjeta" in respuesta.lower()
-    assert respuesta == llm_client._RESPUESTA_TARJETA_BLOQUEADA
+    assert respuesta == llm_client.RESPUESTA_TARJETA_BLOQUEADA

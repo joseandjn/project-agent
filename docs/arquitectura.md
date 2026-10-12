@@ -22,7 +22,8 @@ flowchart TB
         direction TB
         authr["POST /api/v1/auth/token — /auth/refresh<br/>app/api/v1/routes/auth.py"]
         jwtdep["get_auth_context — valida JWT<br/>app/api/v1/dependencies/auth.py"]
-        route["POST /api/v1/chat<br/>app/api/v1/routes/chat.py"]
+        route["POST /api/v1/chat<br/>app/api/v1/routes/chat.py<br/>agente armado en cada request"]
+        routev2["POST /api/v2/chat<br/>app/api/v2/routes/chat.py<br/>agente compartido (app/services/agente.py)<br/>sesión y perfil en context=Contexto"]
         health["GET /health"]
         gen["generate_reply(mensaje, thread_id)<br/>app/services/llm_client.py"]
         precheck["Pre-chequeo de tarjeta<br/>app/guardrails/pii.py"]
@@ -79,6 +80,9 @@ flowchart TB
     tback -->|"JWT"| web
     web -->|"HTTP — Bearer JWT + mensaje"| route
     route --> jwtdep
+    web -->|"HTTP — Bearer JWT + mensaje"| routev2
+    routev2 --> jwtdep
+    routev2 -->|"mismo agente, creado en el lifespan"| agente
     web -.-> gw -.-> route
     route --> gen
     gen --> precheck

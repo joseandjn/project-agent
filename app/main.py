@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routes import api_router
+from app.api.v2.routes import api_router_v2
 from sqlalchemy import text
 
 from app.core.config import get_settings
@@ -13,6 +14,7 @@ from app.db.session import close_engine, get_sessionmaker
 from app.memory.long_term.consolidacion import close_redis, sweeper
 from app.memory.short_term.session_memory import close_checkpointer, get_checkpointer
 from app.observability.langfuse import cerrar_langfuse, get_langfuse
+from app.services.agente import get_agente, reset_agente
 
 settings = get_settings()
 
@@ -30,6 +32,8 @@ async def lifespan(app: FastAPI):
     # Pool de Postgres (tiendas, clientes, perfiles). El esquema lo crea `alembic upgrade head`.
     async with get_sessionmaker()() as db:
         await db.execute(text("SELECT 1"))
+    # Agente compartido de /api/v2/chat: se crea una sola vez (necesita el checkpointer).
+    await get_agente()
     # Trazas en Langfuse Cloud (None si LANGFUSE_ENABLED no esta prendido).
     get_langfuse()
     # Consolida la memoria de largo plazo de las sesiones inactivas antes de que venza su TTL.
@@ -39,6 +43,7 @@ async def lifespan(app: FastAPI):
     with contextlib.suppress(asyncio.CancelledError):
         await tarea_sweeper
     await close_redis()
+    reset_agente()
     await close_checkpointer()
     await close_engine()
     cerrar_langfuse()  # envia las trazas pendientes
@@ -66,3 +71,4 @@ async def health_check():
 
 
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router_v2, prefix="/api/v2")

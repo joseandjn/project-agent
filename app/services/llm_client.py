@@ -15,7 +15,7 @@ from app.observability.langfuse import callbacks
 from app.tools.langchain_tools import build_tools
 
 # Respuesta fija cuando el guardrail de PII bloquea un numero de tarjeta en el chat.
-_RESPUESTA_TARJETA_BLOQUEADA = (
+RESPUESTA_TARJETA_BLOQUEADA = (
     "Por tu seguridad no proceso numeros de tarjeta por el chat. Puedo ayudarte a elegir "
     "el alimento y te comparto el link del producto; el pago se completa en la tienda web."
 )
@@ -66,7 +66,7 @@ async def generate_reply(mensaje: str, thread_id: str, perfil: Optional[PerfilCl
     # Corta antes de tocar el agente: un numero de tarjeta no debe entrar al grafo ni al
     # checkpointer (el bloqueo del middleware llega despues de persistir el input).
     if contiene_numero_de_tarjeta(mensaje):
-        return _RESPUESTA_TARJETA_BLOQUEADA
+        return RESPUESTA_TARJETA_BLOQUEADA
 
     model = get_chat_model()
     tools = build_tools(thread_id)
@@ -87,6 +87,6 @@ async def generate_reply(mensaje: str, thread_id: str, perfil: Optional[PerfilCl
             config={**session_config(thread_id), "callbacks": callbacks()},
         )
     except PIIDetectionError:
-        return _RESPUESTA_TARJETA_BLOQUEADA
+        return RESPUESTA_TARJETA_BLOQUEADA
 
     return result["messages"][-1].content
