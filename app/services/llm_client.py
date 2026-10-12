@@ -11,6 +11,7 @@ from app.core.config import Settings, get_settings
 from app.guardrails.pii import build_pii_guardrail, contiene_numero_de_tarjeta
 from app.memory.long_term.models import PerfilCliente
 from app.memory.short_term.session_memory import get_checkpointer, session_config
+from app.observability.langfuse import callbacks
 from app.tools.langchain_tools import build_tools
 
 # Respuesta fija cuando el guardrail de PII bloquea un numero de tarjeta en el chat.
@@ -81,7 +82,9 @@ async def generate_reply(mensaje: str, thread_id: str, perfil: Optional[PerfilCl
     try:
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": mensaje}]},
-            config=session_config(thread_id),
+            # callbacks: las llamadas al LLM y a las tools cuelgan de la traza de Langfuse que
+            # abre /chat (vacio si Langfuse esta deshabilitado).
+            config={**session_config(thread_id), "callbacks": callbacks()},
         )
     except PIIDetectionError:
         return _RESPUESTA_TARJETA_BLOQUEADA

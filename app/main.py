@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.db.session import close_engine, get_sessionmaker
 from app.memory.long_term.consolidacion import close_redis, sweeper
 from app.memory.short_term.session_memory import close_checkpointer, get_checkpointer
+from app.observability.langfuse import cerrar_langfuse, get_langfuse
 
 settings = get_settings()
 
@@ -29,6 +30,8 @@ async def lifespan(app: FastAPI):
     # Pool de Postgres (tiendas, clientes, perfiles). El esquema lo crea `alembic upgrade head`.
     async with get_sessionmaker()() as db:
         await db.execute(text("SELECT 1"))
+    # Trazas en Langfuse Cloud (None si LANGFUSE_ENABLED no esta prendido).
+    get_langfuse()
     # Consolida la memoria de largo plazo de las sesiones inactivas antes de que venza su TTL.
     tarea_sweeper = asyncio.create_task(sweeper())
     yield
@@ -38,6 +41,7 @@ async def lifespan(app: FastAPI):
     await close_redis()
     await close_checkpointer()
     await close_engine()
+    cerrar_langfuse()  # envia las trazas pendientes
 
 
 app = FastAPI(

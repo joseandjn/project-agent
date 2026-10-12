@@ -24,6 +24,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from app.core.config import get_settings
 from app.guardrails.pii import contiene_numero_de_tarjeta, redactar_pii
 from app.memory.long_term.models import PerfilCliente, PerfilExtraido
+from app.observability.langfuse import callbacks
 from app.services.llm_client import build_chat_model
 from app.tools.catalog import get_producto_by_sku
 
@@ -138,7 +139,9 @@ async def extraer_perfil(
     )
     try:
         estructurado = (model or get_memoria_model()).with_structured_output(PerfilExtraido)
-        extraido = await estructurado.ainvoke([SystemMessage(PROMPT_EXTRACTOR), HumanMessage(entrada)])
+        extraido = await estructurado.ainvoke(
+            [SystemMessage(PROMPT_EXTRACTOR), HumanMessage(entrada)], config={"callbacks": callbacks()}
+        )
         if not isinstance(extraido, PerfilExtraido):
             extraido = PerfilExtraido.model_validate(extraido)
     except Exception:

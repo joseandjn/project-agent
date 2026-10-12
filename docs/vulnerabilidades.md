@@ -249,3 +249,10 @@ secuestrado dentro de una petición lo cubre mejor **ASI01**. El "agente auditor
 Ya implementado que reduce superficie: guardrail de PII (`PIIMiddleware` — bloquea tarjeta,
 redacta email/teléfono), `session_id` inyectado por Python en `derivar_veterinario`,
 suavizado de Laplace + peso acotado en el scoring, shallow saver con TTL de 30 min.
+
+**Nuevo receptor de datos (2026-10-11):** con `LANGFUSE_ENABLED=true`, las trazas (mensajes,
+prompt con el bloque `<perfil_cliente>`, argumentos y resultados de tools) se envían a
+**Langfuse Cloud**, un servicio externo. Todo pasa antes por `enmascarar`
+(`app/observability/langfuse.py`: email, teléfono y tarjeta); los nombres de mascotas y los
+síntomas no se enmascaran. Pendiente: retención de trazas y borrarlas cuando el cliente
+pide `DELETE /memoria` (ver `docs/observabilidad_langfuse.md`).

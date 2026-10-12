@@ -1,7 +1,8 @@
 # Diseño · Observabilidad con Langfuse
 
-Estado: **propuesta de diseño, pendiente de las [Preguntas abiertas](#preguntas-abiertas).**
-No hay nada implementado.
+Estado: **implementado** (fases 1 y 2, salvo los eventos de reglas de negocio, que todavía
+no existen). Quedan abiertas las [Preguntas abiertas](#preguntas-abiertas) 1–3; ninguna
+bloquea el uso.
 
 Objetivo: ver qué hace el agente en cada turno (qué tools llamó, con qué argumentos, qué
 devolvieron), cuánto cuesta cada turno y cada tienda, y dónde falla.
@@ -99,10 +100,30 @@ app/main.py                     # lifespan: crear el cliente; al apagar, flush
 
 ## Fases
 
-1. SDK actualizado, cliente con `mask` y trazas de `/chat` con atributos por tienda, sesión y
-   cliente.
-2. Trazas de la memoria (extractor y sweeper) y eventos de los guardrails.
-3. Documentación: `arquitectura.md`, `vulnerabilidades.md`, `.env.example`.
+1. ✅ SDK actualizado (`langfuse==4.15.6`), cliente con `mask` y trazas de `/chat` con
+   atributos por tienda, sesión y cliente.
+2. ✅ Trazas de la memoria: cada `consolidar` (disparado por turnos o por el sweeper) es una
+   traza `consolidar_memoria` con la llamada al extractor. Los middlewares de PII aparecen
+   como pasos de la traza. Los eventos de las reglas de negocio se suman cuando existan.
+3. ✅ Documentación: `README.md`, `arquitectura.md`, `vulnerabilidades.md`, `.env.example`.
+
+---
+
+## Implementación
+
+| Pieza | Dónde |
+|---|---|
+| Cliente singleton, `enmascarar`, `trazar`, `callbacks`, `cerrar_langfuse` | `app/observability/langfuse.py` |
+| Traza `chat` por turno (entrada y salida) | `app/api/v1/routes/chat.py` |
+| Callbacks del agente (LLM, tools, middlewares) | `app/services/llm_client.py` (`generate_reply`) |
+| Traza `consolidar_memoria` + callbacks del extractor | `app/memory/long_term/consolidacion.py`, `extractor.py` |
+| Inicio y flush al apagar | `app/main.py` (lifespan) |
+| Settings | `LANGFUSE_ENABLED`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_SAMPLE_RATE`; el `environment` de Langfuse es `ENVIRONMENT` |
+| Tests | `tests/unit/test_observabilidad.py`: exportador de OpenTelemetry en memoria, sin red |
+
+**Desvío respecto del diseño:** `LANGFUSE_ENVIRONMENT` no se agregó; se reutiliza
+`ENVIRONMENT`, que ya existía. La versión del release se puede pasar con la variable
+`LANGFUSE_RELEASE`, que el SDK lee sola.
 
 ---
 

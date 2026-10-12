@@ -64,10 +64,11 @@ flowchart TB
         pg[("PostgreSQL + pgvector<br/>tiendas — clientes — perfiles (Alembic)")]
     end
 
+    obs["Langfuse Cloud — servicio externo<br/>una traza por turno y por consolidación<br/>PII enmascarada — LANGFUSE_ENABLED"]
+
     subgraph pend["Pendiente (blueprint, sin código)"]
         direction TB
         lg["Grafo LangGraph explícito<br/>perfilar → buscar → recomendar / derivar"]
-        obs["Observabilidad<br/>Langfuse — OpenTelemetry"]
         gw["Gateway nginx — CI Jenkins — canary"]
         etl["ETL de catálogo<br/>export BD → Pydantic → embeddings"]
     end
@@ -99,7 +100,8 @@ flowchart TB
     t3 --> fs
     t4 -->|"escribe derivación"| fs
 
-    gen -.-> obs
+    route -->|"traza del turno + callbacks del agente"| obs
+    cons -->|"traza de la consolidación"| obs
     agente -.-> lg
     fs -.-> etl
     route -->|"lee perfil → system prompt"| pg
@@ -111,7 +113,7 @@ flowchart TB
     memr --> pg
 
     classDef pendiente fill:#f4f4f4,stroke:#999,stroke-dasharray:4,color:#555;
-    class lg,obs,gw,etl pendiente;
+    class lg,gw,etl pendiente;
 ```
 
 ---

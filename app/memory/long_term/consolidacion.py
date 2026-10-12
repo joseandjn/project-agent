@@ -33,6 +33,7 @@ from app.db.session import get_sessionmaker
 from app.memory.long_term.extractor import extraer_perfil
 from app.memory.long_term.repo import guardar_perfil, leer_perfil
 from app.memory.short_term.session_memory import get_checkpointer, session_config
+from app.observability.langfuse import trazar
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,11 @@ async def consolidar(thread_id: str) -> bool:
             return False
 
         async with get_sessionmaker()() as db:
-            perfil = await extraer_perfil(await leer_perfil(db, cliente_id), nuevos)
+            # Traza propia (misma session_id que el chat) para medir el costo de la memoria.
+            with trazar("consolidar_memoria", thread_id=thread_id, cliente_id=cliente_id) as traza:
+                perfil = await extraer_perfil(await leer_perfil(db, cliente_id), nuevos)
+                if traza is not None:
+                    traza.update(metadata={"mensajes_nuevos": len(nuevos), "guardado": perfil is not None})
             if perfil is None:
                 # No se avanza `consolidados`: el proximo disparador reintenta con estos mensajes.
                 return False

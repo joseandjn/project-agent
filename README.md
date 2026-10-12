@@ -246,6 +246,26 @@ python -m evals.run_evals_memoria --modelo qwen2.5:14b   # otro modelo del mismo
 `app/db/migrations/versions/`. Para un cambio nuevo:
 `alembic revision --autogenerate --rev-id 0002 -m "descripcion"` y luego `alembic upgrade head`.
 
+## Observabilidad (Langfuse Cloud)
+
+Una traza por turno de `/chat` (llamadas al LLM con tokens y costo, tools con argumentos y
+resultados, guardrails) y una por cada consolidación de memoria. Cada traza lleva
+`session_id = {tienda}:{sesión}`, `user_id = cliente_id` (nada si es anónimo) y la tienda
+como metadato y tag `tienda:<id>`, para filtrar y ver el costo por tienda. Diseño:
+[`docs/observabilidad_langfuse.md`](docs/observabilidad_langfuse.md).
+
+Para prenderlo: crear un proyecto en [Langfuse Cloud](https://cloud.langfuse.com) y en `.env`:
+
+```bash
+LANGFUSE_ENABLED=true
+LANGFUSE_HOST=https://cloud.langfuse.com      # EU; US: https://us.cloud.langfuse.com
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+```
+
+Apagado por defecto (tests y evals no envían nada). Antes de enviar, email, teléfono y
+tarjeta se enmascaran. Si Langfuse no responde, el chat sigue funcionando.
+
 ## Tests
 
 ```bash
@@ -332,6 +352,9 @@ python -m graph_neo4j.queries
 - [x] `app/tools/langchain_tools.py` — las tools conectadas al chat vía function-calling,
       usando `create_agent` de LangChain (`langchain==1.4.0`) sobre `ChatOllama` /
       `ChatOpenAI` / `ChatAnthropic` según `LLM_PROVIDER`
+- [x] `app/observability` — trazas en Langfuse Cloud (SDK v4 sobre OpenTelemetry): una por
+      turno de `/chat` y por consolidación de memoria, con sesión, cliente y tienda, PII
+      enmascarada; apagado salvo `LANGFUSE_ENABLED=true`
 - [ ] `app/agent/graph` — grafo LangGraph propio (perfilar → buscar → recomendar |
       derivar) como maquina de estados explicita; hoy el agente decide libremente qué
       tool llamar (ReAct genérico vía `create_agent`), no sigue ese flujo fijo

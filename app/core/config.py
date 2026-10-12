@@ -51,10 +51,14 @@ class Settings(BaseSettings):
     # con evals/run_evals_memoria.py.
     memoria_model: Optional[str] = None
 
-    # --- Langfuse (self-hosted, observabilidad) ---
-    langfuse_host: str = "http://localhost:3000"
+    # --- Langfuse Cloud (trazas, docs/observabilidad_langfuse.md) ---
+    # Apagado por defecto (tests, evals): se prende con LANGFUSE_ENABLED=true + las dos claves.
+    langfuse_enabled: bool = False
+    # Region del proyecto: EU https://cloud.langfuse.com, US https://us.cloud.langfuse.com
+    langfuse_host: str = "https://cloud.langfuse.com"
     langfuse_public_key: Optional[str] = None
     langfuse_secret_key: Optional[str] = None
+    langfuse_sample_rate: float = 1.0  # fraccion de trazas que se envian (0.0 a 1.0)
 
     # --- Evals (juez LLM-as-judge para evals/, usa el mismo LLM_PROVIDER) ---
     # Si no se define, el juez usa el mismo modelo que el agente en produccion. Se puede
