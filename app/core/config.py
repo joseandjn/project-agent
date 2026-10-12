@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     ollama_chat_model: str = "llama3.1:8b"
     ollama_embedding_model: str = "nomic-embed-text"
 
+    # --- Embeddings de buscar_alimentos: "ollama" (local) u "openai" (sin Ollama, p. ej. en la
+    # nube; usa OPENAI_API_KEY). Independiente de LLM_PROVIDER.
+    embedding_provider: str = "ollama"
+    openai_embedding_model: str = "text-embedding-3-small"
+
     # --- OpenAI (opcional, solo si llm_provider == "openai") ---
     openai_api_key: Optional[str] = None
     openai_chat_model: str = "gpt-4o-mini"

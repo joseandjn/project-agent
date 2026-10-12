@@ -1,0 +1,6 @@
+# HTTPS automatico (Let's Encrypt) para el dominio de la demo; DOMAIN sale del .env del
+# servidor (p. ej. vethis-demo.eastus2.cloudapp.azure.com). Ver docs/despliegue_azure.md.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy api:8000
+}

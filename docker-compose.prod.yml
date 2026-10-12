@@ -1,0 +1,85 @@
+# Stack de la demo en un servidor (docs/despliegue_azure.md):
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Diferencias con docker-compose.yml (local):
+# - Solo Caddy publica puertos (80/443, HTTPS automatico). Postgres, Redis y la API quedan
+#   en la red interna de Docker, sin acceso desde internet.
+# - Postgres y Redis con contrasena (POSTGRES_PASSWORD, REDIS_PASSWORD del .env).
+# - Sin Ollama ni Neo4j: chat y embeddings con OpenAI (LLM_PROVIDER / EMBEDDING_PROVIDER).
+#
+# Variables requeridas en el .env del servidor: DOMAIN, POSTGRES_PASSWORD, REDIS_PASSWORD,
+# JWT_SECRET, OPENAI_API_KEY (y las de Langfuse si se usa).
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vethis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: vethis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vethis -d vethis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    # redis:8 incluye RediSearch, que necesita el checkpointer de LangGraph.
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?falta REDIS_PASSWORD en .env}", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-demo}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      POSTGRES_DSN: postgresql+asyncpg://vethis:${POSTGRES_PASSWORD}@postgres:5432/vethis
+      REDIS_URL: redis://default:${REDIS_PASSWORD}@redis:6379/0
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?falta DOMAIN en .env}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

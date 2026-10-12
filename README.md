@@ -260,6 +260,15 @@ python -m evals.run_evals_memoria --modelo qwen2.5:14b   # otro modelo del mismo
 `app/db/migrations/versions/`. Para un cambio nuevo:
 `alembic revision --autogenerate --rev-id 0002 -m "descripcion"` y luego `alembic upgrade head`.
 
+## Desplegar una demo
+
+- **Azure (VM + Docker Compose):** [`docs/despliegue_azure.md`](docs/despliegue_azure.md), con
+  `docker-compose.prod.yml` (solo Caddy expone 80/443 con HTTPS; Postgres y Redis con
+  contraseña y sin puertos públicos) y `deploy/env.prod.example`.
+- **Railway:** [`docs/despliegue_railway.md`](docs/despliegue_railway.md).
+
+En la nube no se usa Ollama: `LLM_PROVIDER=openai` y `EMBEDDING_PROVIDER=openai`.
+
 ## Observabilidad (Langfuse Cloud)
 
 Una traza por turno de `/chat` (llamadas al LLM con tokens y costo, tools con argumentos y
