@@ -29,13 +29,6 @@ class Disponibilidad(BaseModel):
     url_producto: str
 
 
-class RacionCalculada(BaseModel):
-    sku: str
-    racion_diaria_g: float
-    duracion_dias: Optional[int]
-    costo_mensual: float
-
-
 class DerivacionVeterinario(BaseModel):
     id: str
     session_id: str

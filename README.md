@@ -378,14 +378,30 @@ Sin argumentos corre ASI01, ASI03 y ASI06 (las de mayor riesgo según
 `docs/vulnerabilidades.md`). Genera un JSON (formato DeepTeam) y un reporte Markdown legible
 en `evals/reportes/redteam_*.md`.
 
-## Experimento: grafo de catálogo (Neo4j)
+## Guía nutricional (Neo4j)
+
+Cada tienda tiene su guía nutricional en Neo4j (versión activa por tienda). La de la demo
+(`data/guias/tienda_demo.yaml`) se basa en el **WSAVA Global Nutrition Toolkit** y cita la
+fuente de cada regla. El agente la usa con tres tools: `calcular_racion` (gramos y kcal
+diarias por calorías, máximo de premios), `consultar_guia` (tóxicos, premios, condición
+corporal, transición, cómo elegir, energía, condiciones que derivan) y `ver_ficha_producto`
+(ingredientes y análisis garantizado). Si Neo4j no responde, usa la guía por defecto.
+
+```bash
+docker compose up -d neo4j
+python -m scripts.cargar_guia --tienda <tienda_id> data/guias/tienda_demo.yaml
+python -m evals.run_evals_nutricion --tienda <tienda_id>
+```
+
+Ambiente de demo: la guía no tiene revisión veterinaria y el análisis de los productos es
+ficticio. Diseño: [`docs/guia_nutricional_neo4j.md`](docs/guia_nutricional_neo4j.md).
+
+## Grafo de catálogo (Neo4j)
 
 `graph_neo4j/` modela `data/catalogo/alimentos.json` como grafo (producto ↔ especie,
 etapa, tamaño de raza, proteína, tipo de alimento, ingredientes) para explorar consultas
-tipo "alternativas que comparten ingredientes pero sin pollo". Es un módulo **aislado**:
-no lo importa `app/` y el servicio `neo4j` no es dependencia de `api` en
-`docker-compose.yml`. Ver [`graph_neo4j/README.md`](graph_neo4j/README.md) para el
-modelo completo y cómo correrlo.
+tipo "alternativas que comparten ingredientes pero sin pollo". Comparte los nodos de
+vocabulario con las guías nutricionales. Ver [`graph_neo4j/README.md`](graph_neo4j/README.md).
 
 ```bash
 docker compose up -d neo4j

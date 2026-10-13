@@ -13,7 +13,8 @@ async def test_calcular_racion_coacciona_peso_string_a_numero():
     auto-generado por @tool debe coaccionarlo a float."""
     tools = _tools_by_name()
     resultado = await tools["calcular_racion"].ainvoke({"peso_mascota_kg": "4", "sku": "DOG-CACH-PEQ-POL-001"})
-    assert resultado["racion_diaria_g"] == 160.0
+    # Cachorro de 4 kg: regla de la guia (4% del peso) => 160 g.
+    assert resultado["racion_diaria_g"] == [160, 160]
 
 
 async def test_calcular_racion_argumento_invalido_lanza_validation_error():

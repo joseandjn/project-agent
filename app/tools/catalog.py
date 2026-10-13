@@ -17,3 +17,12 @@ def get_producto_by_sku(sku: str) -> Optional[Dict[str, Any]]:
         if producto["sku"] == sku:
             return producto
     return None
+
+
+def get_producto_por_sku_o_nombre(valor: str) -> Optional[Dict[str, Any]]:
+    """Por SKU o por nombre exacto (sin distinguir mayusculas): el LLM a veces pasa el nombre
+    del producto en lugar del SKU. Los nombres del catalogo son unicos."""
+    if producto := get_producto_by_sku(valor.strip()):
+        return producto
+    nombre = valor.strip().casefold()
+    return next((p for p in get_catalog() if p["nombre"].casefold() == nombre), None)

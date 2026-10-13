@@ -38,11 +38,16 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT ingrediente_nombre IF NOT EXISTS FOR (n:Ingrediente) REQUIRE n.nombre IS UNIQUE",
 ]
 
+# Borra solo los productos y, despues, el vocabulario que quedo huerfano. Especie, Etapa e
+# Ingrediente tambien los usan las guias nutricionales (app/nutricion/grafo.py): borrarlos
+# con DETACH DELETE romperia las reglas de las guias.
 WIPE = """
+MATCH (p:Producto) DETACH DELETE p
+WITH 1 AS _
 MATCH (n)
-WHERE n:Producto OR n:Especie OR n:Etapa OR n:TamanoRaza
-   OR n:Proteina OR n:TipoAlimento OR n:Ingrediente
-DETACH DELETE n
+WHERE (n:Especie OR n:Etapa OR n:TamanoRaza OR n:Proteina OR n:TipoAlimento OR n:Ingrediente)
+  AND NOT (n)--()
+DELETE n
 """
 
 MERGE_PRODUCTO = """

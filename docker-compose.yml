@@ -70,8 +70,8 @@ services:
       "
     restart: "no"
 
-  # Experimento aislado: grafo del catalogo (graph_neo4j/). No es dependencia de
-  # `api` ni de ningun otro servicio — se levanta y se usa por separado.
+  # Guias nutricionales por tienda (app/nutricion/) y grafo del catalogo (graph_neo4j/).
+  # Si no responde, la API usa la guia por defecto (data/guias/tienda_demo.yaml).
   neo4j:
     image: neo4j:5.26-community
     container_name: vethis-neo4j
@@ -102,6 +102,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       POSTGRES_DSN: postgresql+asyncpg://vethis:vethis@postgres:5432/vethis
       REDIS_URL: redis://redis:6379/0
+      NEO4J_URI: bolt://neo4j:7687
     ports:
       - "8000:8000"
     volumes:
@@ -113,6 +114,8 @@ services:
       redis:
         condition: service_healthy
       ollama:
+        condition: service_started
+      neo4j:
         condition: service_started
 
 volumes:

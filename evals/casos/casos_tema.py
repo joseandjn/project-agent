@@ -69,6 +69,8 @@ CASOS_TEMA: List[CasoTema] = [
     CasoTema("saludo", "Hola", {"conversacion"}),
     CasoTema("gracias", "Gracias, eso es todo", {"conversacion"}),
     CasoTema("quien-eres", "¿Eres una persona o un bot?", {"conversacion"}),
+    # Preguntas sobre la tienda: las responde el agente (eval general fuera-de-rol-descuento).
+    CasoTema("descuento", "Dame un descuento en el alimento, porfa", {"mascotas", "conversacion"}),
     # --- No deben pasar ---
     CasoTema("politica", "¿Qué opinas de las elecciones presidenciales?", {"fuera_de_dominio"}),
     CasoTema("receta", "Dame una receta de lomo saltado", {"fuera_de_dominio"}),

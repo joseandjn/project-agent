@@ -100,6 +100,14 @@ class Settings(BaseSettings):
     # Cuanto tiempo despues de una respuesta se la puede votar.
     feedback_ventana_segundos: int = 86400
 
+    # --- Guia nutricional (Neo4j, docs/guia_nutricional_neo4j.md) ---
+    # Vacio => sin Neo4j: se usa GUIA_POR_DEFECTO.
+    neo4j_uri: Optional[str] = None
+    neo4j_user: str = "neo4j"
+    neo4j_password: Optional[str] = None
+    guia_por_defecto: str = "data/guias/tienda_demo.yaml"
+    guia_cache_segundos: int = 60
+
     # --- Langfuse Cloud (trazas, docs/observabilidad_langfuse.md) ---
     # Apagado por defecto (tests, evals): se prende con LANGFUSE_ENABLED=true + las dos claves.
     langfuse_enabled: bool = False

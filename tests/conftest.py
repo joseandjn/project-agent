@@ -14,5 +14,10 @@ def _sin_langfuse(monkeypatch):
     monkeypatch.setattr(get_settings(), "rate_limit_enabled", False)
     # Control de tema apagado (llamaria al LLM real); lo prueban test_tema.py y los evals.
     monkeypatch.setattr(get_settings(), "tema_guard_enabled", False)
+    # Sin Neo4j: la guia nutricional sale de GUIA_POR_DEFECTO (test_guia_neo4j.py usa Neo4j).
+    monkeypatch.setattr(get_settings(), "neo4j_uri", None)
+    from app.nutricion import repo
+
+    repo._cache.clear()
     monkeypatch.setattr(obs, "_cliente", None)
     monkeypatch.setattr(obs, "_inicializado", False)
