@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1180" viewBox="-40 0 1180 1180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#111"/>
+    </marker>
+    <style>
+      .caja { fill: #fff; stroke: #333; stroke-width: 1.4; }
+      .fuerte { fill: #fff; stroke: #111; stroke-width: 2.6; }
+      .titulo { font-size: 17px; font-weight: 700; fill: #111; }
+      .zona { font-size: 17px; font-weight: 700; fill: #111; }
+      .txt { font-size: 14px; fill: #222; }
+      .chico { font-size: 12px; fill: #444; }
+      .linea { stroke: #111; stroke-width: 2; fill: none; }
+      .punteada { stroke: #666; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+
+  <rect x="-40" width="1180" height="1180" fill="#ffffff"/>
+
+  <!-- ===== Usuarios y tienda ===== -->
+  <rect class="caja" x="380" y="20" width="170" height="86" rx="8"/>
+  <g transform="translate(450,34)" fill="#111">
+    <circle cx="8" cy="7" r="6"/><circle cx="24" cy="7" r="6"/>
+    <path d="M-2,24 a10,9 0 0 1 20,0 z"/><path d="M14,24 a10,9 0 0 1 20,0 z"/>
+  </g>
+  <text class="titulo" x="465" y="80" text-anchor="middle">Clientes</text>
+  <text class="chico" x="465" y="97" text-anchor="middle">navegador · celular</text>
+
+  <rect class="caja" x="770" y="20" width="250" height="86" rx="8"/>
+  <text class="titulo" x="895" y="52" text-anchor="middle">Backend de la tienda</text>
+  <text class="chico" x="895" y="72" text-anchor="middle">guarda la API key de la tienda</text>
+  <text class="chico" x="895" y="90" text-anchor="middle">POST /auth/token → JWT de la sesión</text>
+  <text class="chico" x="665" y="55" text-anchor="middle">identifica al cliente</text>
+
+  <!-- ===== Frontend ===== -->
+  <rect class="caja" x="215" y="150" width="170" height="64" rx="8"/>
+  <text class="titulo" x="300" y="177" text-anchor="middle">Next.js +</text>
+  <text class="titulo" x="300" y="199" text-anchor="middle">assistant-ui</text>
+
+  <rect class="caja" x="370" y="172" width="260" height="120" rx="8"/>
+  <g transform="translate(486,186)"><rect x="0" y="0" width="28" height="22" rx="3" fill="none" stroke="#111" stroke-width="2.4"/><line x1="0" y1="7" x2="28" y2="7" stroke="#111" stroke-width="2.4"/><line x1="12" y1="7" x2="12" y2="22" stroke="#111" stroke-width="2.4"/></g>
+  <text class="titulo" x="500" y="232" text-anchor="middle">vethis-chat</text>
+  <text class="chico" x="500" y="252" text-anchor="middle">chat · 👍/👎 con motivo</text>
+  <text class="chico" x="500" y="270" text-anchor="middle">servidor: API key + cookie httpOnly</text>
+  <text class="chico" x="500" y="286" text-anchor="middle">(la key nunca llega al navegador)</text>
+
+  <!-- Caddy -->
+  <rect class="caja" x="520" y="318" width="240" height="50" rx="8"/>
+  <text class="titulo" x="640" y="340" text-anchor="middle">Caddy</text>
+  <text class="chico" x="640" y="358" text-anchor="middle">HTTPS · body ≤ 64 KB · rutas</text>
+
+  <!-- ===== Agent runtime ===== -->
+  <rect x="200" y="380" width="430" height="400" rx="8" fill="#d4ecd9" stroke="#9cc5a6" stroke-width="1.2"/>
+  <text class="zona" x="216" y="406">Agent runtime · FastAPI</text>
+  <text class="chico" x="216" y="426">/api/v1 · /api/v2 chat · /auth · /feedback · /memoria</text>
+
+  <!-- Guardrails -->
+  <rect class="caja" x="222" y="440" width="386" height="78" rx="8"/>
+  <text class="txt" x="415" y="460" text-anchor="middle" font-weight="700">Guardrails</text>
+  <text class="chico" x="415" y="479" text-anchor="middle">JWT por tienda · rate limits (sesión, cliente, tienda)</text>
+  <text class="chico" x="415" y="496" text-anchor="middle">PII · control de tema (clasificador en paralelo)</text>
+  <text class="chico" x="415" y="512" text-anchor="middle">límites por turno · timeouts · modelo de respaldo</text>
+
+  <rect class="fuerte" x="262" y="532" width="306" height="190" rx="10"/>
+  <g transform="translate(285,552)" fill="none" stroke="#3b6fe0" stroke-width="2.4">
+    <path d="M16,0 L32,16 L16,32 L0,16 z"/><path d="M16,8 L24,16 L16,24 L8,16 z" stroke="#9aa"/>
+  </g>
+  <text class="titulo" x="340" y="574">Agente Vethis</text>
+  <text class="chico" x="340" y="592">asesor de alimentos</text>
+  <line x1="282" y1="610" x2="548" y2="610" stroke="#111" stroke-width="1.2"/>
+  <text class="txt" x="415" y="634" text-anchor="middle">LangChain create_agent (ReAct)</text>
+  <text class="txt" x="415" y="654" text-anchor="middle">+ LangGraph</text>
+  <text class="chico" x="415" y="678" text-anchor="middle">v1: agente por request</text>
+  <text class="chico" x="415" y="696" text-anchor="middle">v2: agente compartido + contexto</text>
+  <text class="chico" x="415" y="712" text-anchor="middle">(sesión y perfil fuera del LLM)</text>
+
+  <!-- ===== Memoria ===== -->
+  <rect x="690" y="380" width="380" height="210" rx="8" fill="#f6e3e1" stroke="#d9b4b0" stroke-width="1.2"/>
+  <text class="zona" x="880" y="408" text-anchor="middle">Memoria</text>
+  <rect class="caja" x="708" y="424" width="166" height="148" rx="8"/>
+  <text class="txt" x="791" y="448" text-anchor="middle" font-weight="700">Corto plazo</text>
+  <text class="chico" x="791" y="472" text-anchor="middle">Redis 8 + RediSearch</text>
+  <text class="chico" x="791" y="490" text-anchor="middle">checkpointer LangGraph</text>
+  <text class="chico" x="791" y="508" text-anchor="middle">historial por sesión</text>
+  <text class="chico" x="791" y="526" text-anchor="middle">TTL 30 min</text>
+  <text class="chico" x="791" y="548" text-anchor="middle">+ contadores de</text>
+  <text class="chico" x="791" y="564" text-anchor="middle">rate limit</text>
+  <rect class="caja" x="886" y="424" width="166" height="148" rx="8"/>
+  <text class="txt" x="969" y="448" text-anchor="middle" font-weight="700">Largo plazo</text>
+  <text class="chico" x="969" y="472" text-anchor="middle">PostgreSQL + pgvector</text>
+  <text class="chico" x="969" y="490" text-anchor="middle">perfil del cliente</text>
+  <text class="chico" x="969" y="508" text-anchor="middle">(mascotas, preferencias)</text>
+  <text class="chico" x="969" y="526" text-anchor="middle">extractor LLM cada 5</text>
+  <text class="chico" x="969" y="544" text-anchor="middle">turnos o por inactividad</text>
+  <text class="chico" x="969" y="562" text-anchor="middle">+ feedback · Alembic</text>
+
+  <!-- ===== Herramientas ===== -->
+  <rect class="caja" x="626" y="736" width="180" height="50" rx="8"/>
+  <text class="titulo" x="716" y="758" text-anchor="middle">Tool calling</text>
+  <text class="chico" x="716" y="776" text-anchor="middle">(function calling)</text>
+
+  <rect x="660" y="810" width="410" height="350" rx="8" fill="#d6e2f7" stroke="#9fb5e0" stroke-width="1.2"/>
+  <text class="zona" x="865" y="838" text-anchor="middle">Herramientas del agente</text>
+
+  <rect class="caja" x="678" y="854" width="182" height="142" rx="8"/>
+  <g transform="translate(755,866)" fill="none" stroke="#111" stroke-width="2.2"><ellipse cx="14" cy="5" rx="14" ry="5"/><path d="M0,5 v20 a14,5 0 0 0 28,0 v-20"/><path d="M0,15 a14,5 0 0 0 28,0"/></g>
+  <text class="txt" x="769" y="916" text-anchor="middle" font-weight="700">Catálogo</text>
+  <text class="chico" x="769" y="936" text-anchor="middle">buscar_alimentos</text>
+  <text class="chico" x="769" y="952" text-anchor="middle">(búsqueda semántica)</text>
+  <text class="chico" x="769" y="970" text-anchor="middle">ver_ficha_producto</text>
+  <text class="chico" x="769" y="986" text-anchor="middle">consultar_disponibilidad</text>
+
+  <rect class="caja" x="870" y="854" width="182" height="142" rx="8"/>
+  <g transform="translate(946,866)" fill="#111"><circle cx="5" cy="5" r="5"/><circle cx="25" cy="5" r="5"/><circle cx="15" cy="24" r="5"/><line x1="5" y1="5" x2="25" y2="5" stroke="#111" stroke-width="2"/><line x1="5" y1="5" x2="15" y2="24" stroke="#111" stroke-width="2"/><line x1="25" y1="5" x2="15" y2="24" stroke="#111" stroke-width="2"/></g>
+  <text class="txt" x="961" y="916" text-anchor="middle" font-weight="700">Guía nutricional</text>
+  <text class="chico" x="961" y="936" text-anchor="middle">Neo4j · por tienda</text>
+  <text class="chico" x="961" y="952" text-anchor="middle">basada en WSAVA</text>
+  <text class="chico" x="961" y="970" text-anchor="middle">consultar_guia</text>
+  <text class="chico" x="961" y="986" text-anchor="middle">calcular_racion</text>
+
+  <rect class="caja" x="678" y="1006" width="182" height="138" rx="8"/>
+  <g transform="translate(755,1018)" fill="none" stroke="#111" stroke-width="2.2"><path d="M14,0 L28,8 L28,24 L14,32 L0,24 L0,8 z"/><path d="M0,8 L14,16 L28,8 M14,16 L14,32"/></g>
+  <text class="txt" x="769" y="1074" text-anchor="middle" font-weight="700">Derivación</text>
+  <text class="chico" x="769" y="1094" text-anchor="middle">derivar_veterinario</text>
+  <text class="chico" x="769" y="1112" text-anchor="middle">(sesión inyectada</text>
+  <text class="chico" x="769" y="1128" text-anchor="middle">por Python)</text>
+
+  <rect class="caja" x="870" y="1006" width="182" height="138" rx="8"/>
+  <g transform="translate(948,1018)" fill="none" stroke="#111" stroke-width="2.2"><path d="M0,0 h18 l8,8 v24 h-26 z"/><path d="M18,0 v8 h8"/></g>
+  <text class="txt" x="961" y="1074" text-anchor="middle" font-weight="700">Datos</text>
+  <text class="chico" x="961" y="1094" text-anchor="middle">catálogo JSON (20 SKUs)</text>
+  <text class="chico" x="961" y="1112" text-anchor="middle">guías YAML validadas</text>
+  <text class="chico" x="961" y="1128" text-anchor="middle">derivaciones DER-*.json</text>
+
+  <!-- ===== Model runtime ===== -->
+  <text class="chico" x="372" y="840" text-anchor="end">Inferencia</text>
+  <text class="chico" x="372" y="856" text-anchor="end">(chat, tools)</text>
+  <text class="chico" x="458" y="840">Respuestas</text>
+  <text class="chico" x="458" y="856">estructuradas</text>
+
+  <rect x="200" y="880" width="430" height="280" rx="8" fill="#fbf0c9" stroke="#e1cf8e" stroke-width="1.2"/>
+  <text class="zona" x="216" y="906">Model runtime</text>
+  <rect class="caja" x="262" y="920" width="306" height="110" rx="8"/>
+  <path transform="translate(284,946)" d="M18,0 C20,12 24,16 36,18 C24,20 20,24 18,36 C16,24 12,20 0,18 C12,16 16,12 18,0 z" fill="#3b6fe0"/>
+  <text class="titulo" x="334" y="960">OpenAI gpt-4o-mini</text>
+  <text class="chico" x="334" y="980">LLM_PROVIDER configurable:</text>
+  <text class="chico" x="334" y="996">Ollama llama3.1 · Anthropic</text>
+  <text class="chico" x="334" y="1014">timeout 30 s · reintentos</text>
+  <rect class="caja" x="222" y="1042" width="190" height="104" rx="8"/>
+  <text class="txt" x="317" y="1066" text-anchor="middle" font-weight="700">Embeddings</text>
+  <text class="chico" x="317" y="1086" text-anchor="middle">text-embedding-3-small</text>
+  <text class="chico" x="317" y="1102" text-anchor="middle">o nomic-embed-text</text>
+  <text class="chico" x="317" y="1118" text-anchor="middle">(Ollama, local)</text>
+  <rect class="caja" x="422" y="1042" width="190" height="104" rx="8"/>
+  <text class="txt" x="517" y="1066" text-anchor="middle" font-weight="700">Llamadas auxiliares</text>
+  <text class="chico" x="517" y="1086" text-anchor="middle">clasificador de tema</text>
+  <text class="chico" x="517" y="1102" text-anchor="middle">extractor de memoria</text>
+  <text class="chico" x="517" y="1118" text-anchor="middle">(salida estructurada)</text>
+
+  <!-- ===== AI developers ===== -->
+  <rect class="caja" x="20" y="470" width="160" height="300" rx="8"/>
+  <g transform="translate(84,486)" fill="#111">
+    <circle cx="8" cy="7" r="6"/><circle cx="24" cy="7" r="6"/>
+    <path d="M-2,24 a10,9 0 0 1 20,0 z"/><path d="M14,24 a10,9 0 0 1 20,0 z"/>
+  </g>
+  <text class="titulo" x="100" y="534" text-anchor="middle">Equipo de IA</text>
+  <line x1="36" y1="548" x2="164" y2="548" stroke="#999" stroke-width="1"/>
+  <text class="txt" x="100" y="572" text-anchor="middle" font-weight="700">Langfuse Cloud</text>
+  <text class="chico" x="100" y="590" text-anchor="middle">trazas · costo por tienda</text>
+  <text class="chico" x="100" y="606" text-anchor="middle">PII enmascarada</text>
+  <text class="txt" x="100" y="634" text-anchor="middle" font-weight="700">Evals</text>
+  <text class="chico" x="100" y="652" text-anchor="middle">DeepEval (GEval)</text>
+  <text class="chico" x="100" y="668" text-anchor="middle">tema · nutrición · memoria</text>
+  <text class="txt" x="100" y="696" text-anchor="middle" font-weight="700">Red team</text>
+  <text class="chico" x="100" y="714" text-anchor="middle">DeepTeam · OWASP ASI</text>
+  <text class="chico" x="100" y="740" text-anchor="middle">pytest: 172 tests</text>
+
+  <!-- Despliegue -->
+  <text class="chico" x="20" y="1172">Despliegue: Docker Compose · VM de Azure (demo) · Caddy con HTTPS de Let's Encrypt</text>
+
+  <!-- Flechas (al final, por encima de las zonas) -->
+  <line class="punteada" x1="770" y1="63" x2="560" y2="63" marker-end="url(#flecha)"/>
+  <line class="linea" x1="465" y1="108" x2="465" y2="170" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="500" y1="294" x2="500" y2="438" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="415" y1="520" x2="415" y2="530" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="570" y1="560" x2="688" y2="485" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="570" y1="690" x2="870" y2="690" />
+  <line class="linea" x1="870" y1="690" x2="870" y2="808" marker-end="url(#flecha)"/>
+  <line class="linea" x1="806" y1="760" x2="870" y2="760"/>
+  <line class="linea" x1="575" y1="690" x2="571" y2="690" marker-end="url(#flecha)"/>
+  <line class="linea" x1="380" y1="724" x2="380" y2="900" marker-end="url(#flecha)"/>
+  <line class="linea" x1="450" y1="900" x2="450" y2="724" marker-end="url(#flecha)"/>
+  <line class="punteada" x1="180" y1="620" x2="200" y2="620" marker-end="url(#flecha)"/>
+</svg>

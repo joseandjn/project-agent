@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1180" viewBox="0 0 1180 1180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#111"/>
+    </marker>
+    <style>
+      .caja { fill: #fff; stroke: #333; stroke-width: 1.4; }
+      .fuerte { fill: #fff; stroke: #111; stroke-width: 2.6; }
+      .zona { font-size: 19px; font-weight: 700; fill: #111; }
+      .tec { font-size: 18px; font-weight: 700; fill: #111; }
+      .sub { font-size: 13px; fill: #555; }
+      .linea { stroke: #111; stroke-width: 2; fill: none; }
+      .punteada { stroke: #666; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect width="1180" height="1180" fill="#fff"/>
+
+  <!-- Usuarios -->
+  <rect class="caja" x="490" y="24" width="200" height="74" rx="8"/>
+  <g transform="translate(573,36)" fill="#111"><circle cx="8" cy="7" r="6"/><circle cx="24" cy="7" r="6"/><path d="M-2,24 a10,9 0 0 1 20,0 z"/><path d="M14,24 a10,9 0 0 1 20,0 z"/></g>
+  <text class="tec" x="590" y="86" text-anchor="middle">Navegador</text>
+
+  <!-- Frontend -->
+  <rect class="caja" x="390" y="150" width="400" height="96" rx="8"/>
+  <text class="zona" x="590" y="178" text-anchor="middle">Frontend</text>
+  <text class="tec" x="590" y="208" text-anchor="middle">Next.js · React · assistant-ui</text>
+  <text class="sub" x="590" y="232" text-anchor="middle">TypeScript · Tailwind CSS</text>
+
+  <!-- Gateway -->
+  <rect class="caja" x="430" y="296" width="320" height="62" rx="8"/>
+  <text class="tec" x="590" y="324" text-anchor="middle">Caddy</text>
+  <text class="sub" x="590" y="344" text-anchor="middle">HTTPS con Let's Encrypt</text>
+
+  <!-- Agent runtime -->
+  <rect x="250" y="404" width="440" height="356" rx="8" fill="#d4ecd9" stroke="#9cc5a6" stroke-width="1.2"/>
+  <text class="zona" x="268" y="434">Agent runtime</text>
+  <rect class="caja" x="276" y="450" width="388" height="70" rx="8"/>
+  <text class="tec" x="470" y="480" text-anchor="middle">FastAPI · Uvicorn · Pydantic</text>
+  <text class="sub" x="470" y="503" text-anchor="middle">PyJWT</text>
+  <rect class="fuerte" x="306" y="548" width="328" height="186" rx="10"/>
+  <g transform="translate(330,568)" fill="none" stroke="#3b6fe0" stroke-width="2.4"><path d="M16,0 L32,16 L16,32 L0,16 z"/><path d="M16,8 L24,16 L16,24 L8,16 z" stroke="#9aa"/></g>
+  <text class="tec" x="380" y="590">Agente</text>
+  <line x1="326" y1="616" x2="614" y2="616" stroke="#111" stroke-width="1.2"/>
+  <text class="tec" x="470" y="652" text-anchor="middle">LangChain</text>
+  <text class="tec" x="470" y="684" text-anchor="middle">LangGraph</text>
+  <text class="sub" x="470" y="712" text-anchor="middle">middlewares de LangChain (guardrails)</text>
+
+  <!-- Memoria -->
+  <rect x="740" y="404" width="410" height="250" rx="8" fill="#f6e3e1" stroke="#d9b4b0" stroke-width="1.2"/>
+  <text class="zona" x="945" y="434" text-anchor="middle">Memoria</text>
+  <rect class="caja" x="758" y="450" width="182" height="184" rx="8"/>
+  <text class="sub" x="849" y="476" text-anchor="middle">Corto plazo</text>
+  <text class="tec" x="849" y="520" text-anchor="middle">Redis 8</text>
+  <text class="sub" x="849" y="544" text-anchor="middle">RediSearch</text>
+  <text class="sub" x="849" y="566" text-anchor="middle">langgraph-checkpoint</text>
+  <text class="sub" x="849" y="584" text-anchor="middle">-redis</text>
+  <rect class="caja" x="950" y="450" width="182" height="184" rx="8"/>
+  <text class="sub" x="1041" y="476" text-anchor="middle">Largo plazo</text>
+  <text class="tec" x="1041" y="520" text-anchor="middle">PostgreSQL</text>
+  <text class="sub" x="1041" y="544" text-anchor="middle">pgvector</text>
+  <text class="sub" x="1041" y="566" text-anchor="middle">SQLAlchemy · asyncpg</text>
+  <text class="sub" x="1041" y="588" text-anchor="middle">Alembic</text>
+
+  <!-- Model runtime -->
+  <rect x="250" y="870" width="440" height="190" rx="8" fill="#fbf0c9" stroke="#e1cf8e" stroke-width="1.2"/>
+  <text class="zona" x="268" y="900">Model runtime</text>
+  <rect class="caja" x="306" y="918" width="328" height="118" rx="8"/>
+  <path transform="translate(328,950)" d="M18,0 C20,12 24,16 36,18 C24,20 20,24 18,36 C16,24 12,20 0,18 C12,16 16,12 18,0 z" fill="#3b6fe0"/>
+  <text class="tec" x="380" y="962">OpenAI</text>
+  <text class="sub" x="380" y="986">gpt-4o-mini</text>
+  <text class="sub" x="380" y="1006">text-embedding-3-small</text>
+
+  <!-- Herramientas -->
+  <rect x="740" y="760" width="410" height="300" rx="8" fill="#d6e2f7" stroke="#9fb5e0" stroke-width="1.2"/>
+  <text class="zona" x="945" y="790" text-anchor="middle">Herramientas</text>
+  <rect class="caja" x="758" y="806" width="182" height="114" rx="8"/>
+  <g transform="translate(835,818)" fill="#111"><circle cx="5" cy="5" r="5"/><circle cx="25" cy="5" r="5"/><circle cx="15" cy="24" r="5"/><line x1="5" y1="5" x2="25" y2="5" stroke="#111" stroke-width="2"/><line x1="5" y1="5" x2="15" y2="24" stroke="#111" stroke-width="2"/><line x1="25" y1="5" x2="15" y2="24" stroke="#111" stroke-width="2"/></g>
+  <text class="tec" x="849" y="880" text-anchor="middle">Neo4j</text>
+  <text class="sub" x="849" y="902" text-anchor="middle">guía nutricional</text>
+  <rect class="caja" x="950" y="806" width="182" height="114" rx="8"/>
+  <g transform="translate(1027,818)" fill="none" stroke="#111" stroke-width="2.2"><ellipse cx="14" cy="5" rx="14" ry="5"/><path d="M0,5 v20 a14,5 0 0 0 28,0 v-20"/><path d="M0,15 a14,5 0 0 0 28,0"/></g>
+  <text class="tec" x="1041" y="880" text-anchor="middle">Catálogo</text>
+  <text class="sub" x="1041" y="902" text-anchor="middle">JSON + embeddings</text>
+  <rect class="caja" x="758" y="930" width="374" height="110" rx="8"/>
+  <text class="tec" x="945" y="964" text-anchor="middle">Tool calling de LangChain</text>
+  <text class="sub" x="945" y="988" text-anchor="middle">buscar_alimentos · consultar_disponibilidad</text>
+  <text class="sub" x="945" y="1007" text-anchor="middle">ver_ficha_producto · calcular_racion</text>
+  <text class="sub" x="945" y="1026" text-anchor="middle">consultar_guia · derivar_veterinario</text>
+
+  <!-- Equipo de IA -->
+  <rect class="caja" x="20" y="460" width="196" height="330" rx="8"/>
+  <g transform="translate(101,476)" fill="#111"><circle cx="8" cy="7" r="6"/><circle cx="24" cy="7" r="6"/><path d="M-2,24 a10,9 0 0 1 20,0 z"/><path d="M14,24 a10,9 0 0 1 20,0 z"/></g>
+  <text class="zona" x="118" y="528" text-anchor="middle">Equipo de IA</text>
+  <line x1="40" y1="544" x2="196" y2="544" stroke="#999" stroke-width="1"/>
+  <text class="tec" x="118" y="576" text-anchor="middle">Langfuse</text>
+  <text class="sub" x="118" y="596" text-anchor="middle">OpenTelemetry</text>
+  <text class="tec" x="118" y="636" text-anchor="middle">DeepEval</text>
+  <text class="tec" x="118" y="672" text-anchor="middle">DeepTeam</text>
+  <text class="tec" x="118" y="708" text-anchor="middle">pytest</text>
+  <text class="sub" x="118" y="744" text-anchor="middle">GitHub</text>
+
+  <!-- Infraestructura -->
+  <rect class="caja" x="20" y="1092" width="1130" height="62" rx="8"/>
+  <text class="zona" x="44" y="1129">Infraestructura</text>
+  <text class="tec" x="640" y="1130" text-anchor="middle">Docker Compose · Azure (VM Ubuntu)</text>
+
+  <!-- Flechas -->
+  <line class="linea" x1="590" y1="100" x2="590" y2="148" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="590" y1="248" x2="590" y2="294" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="590" y1="360" x2="590" y2="448" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="470" y1="522" x2="470" y2="546" marker-end="url(#flecha)"/>
+  <line class="linea" x1="636" y1="600" x2="738" y2="560" marker-start="url(#flecha)" marker-end="url(#flecha)"/>
+  <line class="linea" x1="430" y1="736" x2="430" y2="916" marker-end="url(#flecha)"/>
+  <line class="linea" x1="510" y1="916" x2="510" y2="736" marker-end="url(#flecha)"/>
+  <line class="linea" x1="636" y1="690" x2="945" y2="690" marker-start="url(#flecha)"/>
+  <line class="linea" x1="945" y1="690" x2="945" y2="758" marker-end="url(#flecha)"/>
+  <line class="punteada" x1="218" y1="625" x2="248" y2="625" marker-end="url(#flecha)"/>
+</svg>
