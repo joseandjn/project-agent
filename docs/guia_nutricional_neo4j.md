@@ -177,7 +177,9 @@ por tipo de pregunta y pedir solo los datos necesarios) y aceptar SKU o nombre e
 consultar la guía.
 
 **Despliegue:** en local, `docker-compose.yml` pasa `NEO4J_URI` a la API. En la demo de Azure
-(`docker-compose.prod.yml`) Neo4j todavía no está: sin `NEO4J_URI` la API usa la guía por
+(`docker-compose.prod.yml`) Neo4j es el perfil opcional `neo4j`, sin puertos públicos y con
+la memoria acotada (~600 MB en uso); se activa con `NEO4J_URI` y `NEO4J_PASSWORD` en el `.env` y
+`COMPOSE_PROFILES=chat,neo4j` (paso 9 de `docs/despliegue_azure.md`). Sin `NEO4J_URI` la API usa la guía por
 defecto, con el mismo contenido.
 
 ---

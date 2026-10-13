@@ -1,4 +1,4 @@
-# Grafo de catalogo (Neo4j) — experimento aislado
+# Grafo de catalogo (Neo4j)
 
 Modela `data/catalogo/alimentos.json` como grafo para explorar relaciones entre
 productos, especie, etapa de vida, tamano de raza, proteina, tipo de alimento e
@@ -34,7 +34,7 @@ python -m graph_neo4j.queries
 ```
 
 Explorar visualmente en Neo4j Browser: http://localhost:7474 (usuario/clave en
-`NEO4J_USER` / `NEO4J_PASSWORD` del `.env`, por defecto `neo4j` / `vethis1234`).
+`NEO4J_USER` / `NEO4J_PASSWORD` del `.env`).
 
 Consulta de ejemplo directa en el Browser:
 

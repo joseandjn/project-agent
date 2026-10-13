@@ -26,7 +26,7 @@ CATALOGO_PATH = Path(__file__).resolve().parent.parent / "data" / "catalogo" / "
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "vethis1234")
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]  # del .env (sin valor por defecto en el codigo)
 
 CONSTRAINTS = [
     "CREATE CONSTRAINT producto_sku IF NOT EXISTS FOR (n:Producto) REQUIRE n.sku IS UNIQUE",

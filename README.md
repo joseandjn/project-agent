@@ -75,7 +75,7 @@ project-agent/
 │   └── observability/                 # Langfuse / OTel
 ├── data/                                # catálogo, conocimiento, historial, memoria, derivaciones
 ├── etl/                                  # export catálogo → Pydantic → embeddings
-├── graph_neo4j/                           # experimento aislado: catálogo como grafo (no lo usa el agente)
+├── graph_neo4j/                           # catálogo como grafo (comparte nodos con las guías nutricionales)
 ├── evals/                                 # set dorado de pruebas
 ├── tests/{unit,integration}/
 ├── deploy/{docker,nginx,jenkins}/
@@ -306,6 +306,8 @@ python -m evals.run_evals_memoria --modelo qwen2.5:14b   # otro modelo del mismo
 - **Railway:** [`docs/despliegue_railway.md`](docs/despliegue_railway.md).
 
 En la nube no se usa Ollama: `LLM_PROVIDER=openai` y `EMBEDDING_PROVIDER=openai`.
+Neo4j (guía nutricional) es opcional en el servidor: perfil `neo4j` con
+`COMPOSE_PROFILES=chat,neo4j` en el `.env`; sin él, la API usa la guía por defecto.
 
 ## Observabilidad (Langfuse Cloud)
 

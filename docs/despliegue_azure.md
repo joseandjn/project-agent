@@ -6,7 +6,7 @@ horas**.
 
 Al terminar vas a tener:
 
-- una URL pública con HTTPS, del tipo `https://vethis-demo.eastus2.cloudapp.azure.com`;
+- una URL pública con HTTPS, del tipo `https://<tu-dominio>`;
 - Swagger en `https://…/docs` para probar el chat;
 - trazas de la demo en Langfuse (entorno `demo`).
 
@@ -151,7 +151,8 @@ Si el tamaño muestra *"no está disponible actualmente en <región> para la sus
 
 1. En la página de la VM, en **Overview**, busca **DNS name** → **Not configured** (clic).
 2. **DNS name label:** `vethis-demo` (si está tomado, otro: `vethis-demo-tunombre`).
-3. **Save.** Tu dominio queda como `vethis-demo.eastus2.cloudapp.azure.com` (cambia según
+3. **Save.** Tu dominio queda como `<etiqueta>.<region>.cloudapp.azure.com` (por ejemplo,
+   `mi-demo.eastus2.cloudapp.azure.com`; cambia según
    la región). **Anótalo:** es el `DOMAIN` del Paso 4.
 
 ### 2.2 Restringir el SSH a tu IP
@@ -183,7 +184,7 @@ Desde la terminal de tu Mac:
 
 ```bash
 chmod 400 ~/Downloads/vethis-demo-key.pem
-ssh -i ~/Downloads/vethis-demo-key.pem azureuser@vethis-demo.eastus2.cloudapp.azure.com
+ssh -i ~/Downloads/vethis-demo-key.pem azureuser@<tu-dominio>
 ```
 
 La primera vez pregunta si confías en el servidor: escribe `yes`. Ahora estás **dentro de
@@ -200,7 +201,7 @@ exit
 Vuelve a entrar (el permiso se aplica en la nueva sesión) y comprueba:
 
 ```bash
-ssh -i ~/Downloads/vethis-demo-key.pem azureuser@vethis-demo.eastus2.cloudapp.azure.com
+ssh -i ~/Downloads/vethis-demo-key.pem azureuser@<tu-dominio>
 docker run --rm hello-world
 ```
 
@@ -303,7 +304,7 @@ Puedes salir del servidor con `exit`.
 Desde la terminal de tu Mac (reemplaza el dominio y la key):
 
 ```bash
-URL=https://vethis-demo.eastus2.cloudapp.azure.com
+URL=https://<tu-dominio>
 KEY=vth_...
 
 TOKEN=$(curl -s $URL/api/v1/auth/token \
@@ -378,7 +379,14 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U vethis -d vethis
 docker compose -f docker-compose.prod.yml exec api python -m scripts.cargar_guia --tienda <id> data/guias/tienda_demo.yaml
 ```
 
-Desde ahí, usa siempre `--profile chat --profile neo4j` en los `up`.
+Para no tener que pasar `--profile chat --profile neo4j` en cada comando, fijar los perfiles
+en el `.env`:
+
+```bash
+echo "COMPOSE_PROFILES=chat,neo4j" >> .env
+```
+
+Desde ahí, `docker compose -f docker-compose.prod.yml up -d --build` levanta los 6 servicios.
 
 ---
 

@@ -3,6 +3,7 @@ la guia en la respuesta. Usa la guia activa de la tienda en Neo4j si NEO4J_URI e
 configurado (si no, la guia por defecto).
 
     python -m evals.run_evals_nutricion --tienda <tienda_id> [--repeticiones 3]
+    python -m evals.run_evals_nutricion                     # guia por defecto (sin Neo4j)
 
 No manda trazas a Langfuse salvo con --langfuse.
 """
@@ -51,7 +52,11 @@ async def correr(tienda, repeticiones):
 
 def main():
     parser = argparse.ArgumentParser(description="Eval de la guia nutricional")
-    parser.add_argument("--tienda", default="aad6e175-8952-42d9-b026-113e4d8dd6b9", help="UUID de la tienda (guia activa)")
+    parser.add_argument(
+        "--tienda",
+        default="sin-tienda",
+        help="UUID de la tienda (usa su guia activa en Neo4j). Sin este parametro: guia por defecto.",
+    )
     parser.add_argument("--repeticiones", type=int, default=1)
     parser.add_argument("--langfuse", action="store_true")
     args = parser.parse_args()
