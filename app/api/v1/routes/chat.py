@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies.auth import get_auth_context
+from app.api.v1.dependencies.rate_limit import limitar_chat
 from app.core.security import AuthContext
 from app.db.session import get_db
 from app.feedback.registro import contar_mensajes, registrar_mensaje
@@ -20,7 +20,7 @@ router = APIRouter()
 async def chat(
     request: ChatRequest,
     background_tasks: BackgroundTasks,
-    ctx: AuthContext = Depends(get_auth_context),
+    ctx: AuthContext = Depends(limitar_chat),
     db: AsyncSession = Depends(get_db),
 ) -> ChatResponse:
     # El historial de la sesion lo maneja el checkpointer de Redis (thread_id con namespace de

@@ -56,6 +56,19 @@ class Settings(BaseSettings):
     # con evals/run_evals_memoria.py.
     memoria_model: Optional[str] = None
 
+    # --- Rate limits (docs/rate_limits.md). Por sesion, cliente y tienda (del JWT); por IP solo
+    # los intentos con API key invalida. 0 desactiva una regla.
+    rate_limit_enabled: bool = True
+    rl_chat_sesion_por_minuto: int = 10
+    rl_chat_cliente_por_minuto: int = 20
+    rl_chat_tienda_por_minuto: int = 300
+    rl_chat_tienda_por_dia: int = 10000  # tope de costo diario de LLM por tienda
+    rl_token_tienda_por_minuto: int = 120  # sesiones nuevas por tienda
+    rl_api_key_invalida_ip_por_minuto: int = 10
+    rl_refresh_sesion_por_minuto: int = 10
+    rl_feedback_sesion_por_minuto: int = 30
+    rl_memoria_cliente_por_minuto: int = 20
+
     # --- Feedback del cliente (docs/feedback_cliente.md) ---
     # Cuanto tiempo despues de una respuesta se la puede votar.
     feedback_ventana_segundos: int = 86400

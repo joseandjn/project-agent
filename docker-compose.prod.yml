@@ -58,6 +58,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-demo}
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      # La API solo recibe trafico de Caddy (red interna): uvicorn toma la IP real del
+      # cliente de X-Forwarded-For (rate limit de API keys invalidas por IP).
+      FORWARDED_ALLOW_IPS: "*"
       POSTGRES_DSN: postgresql+asyncpg://vethis:${POSTGRES_PASSWORD}@postgres:5432/vethis
       REDIS_URL: redis://default:${REDIS_PASSWORD}@redis:6379/0
     expose:

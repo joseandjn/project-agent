@@ -13,6 +13,7 @@ Documentación de diseño y seguridad de `project-agent`.
 | [`despliegue_railway.md`](despliegue_railway.md) | **Guía paso a paso** para publicar la demo en Railway (API + Postgres con pgvector + Redis 8), con variables, creación de la tienda, pruebas, costos y problemas comunes. |
 | [`feedback_cliente.md`](feedback_cliente.md) | **Propuesta de diseño**: 👍/👎 por respuesta con motivo opcional, guardado en Postgres y como score en Langfuse; solo los motivos de producto afectan el ranking por tienda. |
 | [`streaming.md`](streaming.md) | **Propuesta de diseño**: `POST /api/v1/chat/stream` con SSE (progreso en vivo + texto ya verificado), sin cambiar `/chat`. |
+| [`rate_limits.md`](rate_limits.md) | **Implementado**: rate limits en Redis por sesión, cliente y tienda (por IP solo API keys inválidas), 429 + `Retry-After`, tope de mensaje y de body, y lo que no cubre. |
 | [`reglas_de_negocio_en_codigo.md`](reglas_de_negocio_en_codigo.md) | **Propuesta de diseño**: presupuesto, derivación al veterinario y anclaje de precios/SKUs garantizados por el backend (middlewares), no solo por el prompt. Incluye la causa del caso S/ 149.25. |
 | [`vulnerabilidades.md`](vulnerabilidades.md) | Análisis manual del backend contra el **OWASP Agentic Security (ASI) Top 10**: severidad y "por qué" por categoría, con referencia a archivos, y remediación priorizada. |
 

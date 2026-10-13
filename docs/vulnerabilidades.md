@@ -27,11 +27,11 @@ Evaluación del backend `project-agent` (VethisAgent) contra la
 |---|---|---|
 | **ASI01 · Agent Goal Hijack** | 🔴 Alto | Rol y reglas de negocio sostenidos solo por el system prompt |
 | **ASI06 · Memory & Context Poisoning** | 🔴 Alto | ~~`session_id` del cliente~~ (resuelto: sale del JWT) + RAG desde fuentes mutables + feedback de scoring |
-| **ASI03 · Identity & Privilege Abuse** | 🟠 Medio | ~~`/chat` sin auth~~ y ~~`session_id` / `cliente_id` sin verificar~~ (resuelto: JWT propio); falta rate limit |
+| **ASI03 · Identity & Privilege Abuse** | 🟠 Medio | ~~`/chat` sin auth~~ y ~~`session_id` / `cliente_id` sin verificar~~ (resuelto: JWT propio); ~~falta rate limit~~ (resuelto: `docs/rate_limits.md`) |
 | **ASI09 · Human-Agent Trust Exploitation** | 🟠 Medio-alto | Dominio cuasi-médico; precios/links sin anclaje duro a la fuente |
 | **ASI02 · Tool Misuse & Exploitation** | 🟠 Medio | Tool-calling sin límite; `derivar_veterinario` escribe ficheros |
 | **ASI04 · Agentic Supply Chain** | 🟠 Medio | Árbol de dependencias grande, sin lockfile/hashes; imágenes y modelos sin pinear |
-| **ASI08 · Cascading Failures** | 🟠 Medio | Sin fallback de modelo, sin límites de llamadas, sin rate limit |
+| **ASI08 · Cascading Failures** | 🟠 Medio | Sin fallback de modelo, sin límites de llamadas por turno; ~~sin rate limit~~ (resuelto) |
 | **ASI05 · Unexpected Code Execution (RCE)** | 🟢 Bajo | El código de la app no ejecuta código dinámico |
 | **ASI07 · Insecure Inter-Agent Communication** | ⚪ No aplica | Un solo agente, sin A2A / sub-agentes |
 | **ASI10 · Rogue Agents** | 🟢 Bajo | Agente síncrono, por request, sin autonomía ni persistencia de intención |
@@ -126,7 +126,9 @@ del token, nunca del body. El `external_id` de la tienda se traduce a un UUID in
 es lo único que viaja en el token. Si se desactiva una tienda, se corta el refresh. Tests:
 `tests/unit/test_security.py`, `tests/unit/test_chat_auth.py`, `tests/integration/test_auth_api.py`.
 
-**Mitigación pendiente**: rate limit por tienda/cliente en el gateway; CORS por tienda
+**Actualización (2026-10-12):** rate limit por sesión, cliente y tienda (y por IP para API keys inválidas) en Redis, con 429 + `Retry-After`; tope de 2000 caracteres por mensaje y de 64 KB por body en Caddy. Ver `docs/rate_limits.md`.
+
+**Mitigación pendiente**: CORS por tienda
 (`tiendas.origenes_permitidos` existe pero todavía no se usa); un token emitido sigue
 siendo válido hasta su `exp` aunque se desactive la tienda (el máximo es `JWT_TTL_SECONDS`).
 
@@ -242,7 +244,7 @@ secuestrado dentro de una petición lo cubre mejor **ASI01**. El "agente auditor
 |---|---|---|
 | 1 | ✅ **Hecho (2026-10-11).** ~~Autenticación en `/chat` (API key del sitio + sesión de usuario) y derivar `session_id` / `cliente_id` del token, nunca del body.~~ | ASI03, ASI06 |
 | 2 | **Guardrails en código** (`app/guardrails/`): forzar derivación ante síntoma en la entrada; guardrail de salida que ancle precios/URLs a `consultar_disponibilidad`. | ASI01, ASI09 |
-| 3 | **Límites y resiliencia**: `ModelFallbackMiddleware` + `Model/ToolCallLimitMiddleware` (built-in de LangChain) + rate limit en el gateway nginx. | ASI08, ASI02 |
+| 3 | **Límites y resiliencia**: `ModelFallbackMiddleware` + `Model/ToolCallLimitMiddleware` (built-in de LangChain). ✅ Rate limit hecho (2026-10-12, `docs/rate_limits.md`). | ASI08, ASI02 |
 | 4 | **Higiene de supply chain**: lockfile con hashes, `pip-audit` en CI, imágenes y modelos pineados por digest. | ASI04 |
 | 5 | **Tratar el catálogo/conocimiento como no confiable**: delimitar en el prompt, sanear el export, no permitir que texto de producto se lea como instrucción. | ASI06, ASI01 |
 

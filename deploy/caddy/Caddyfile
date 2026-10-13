@@ -7,6 +7,11 @@
 {$DOMAIN} {
 	encode gzip
 
+	# Ningun request legitimo pesa mas (el mensaje de chat tiene tope de 2000 caracteres).
+	request_body {
+		max_size 64KB
+	}
+
 	@api path /api/v1/* /api/v2/* /docs /docs/* /openapi.json /health
 	handle @api {
 		reverse_proxy api:8000

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies.auth import get_auth_context
+from app.api.v1.dependencies.rate_limit import limitar_memoria
 from app.core.security import AuthContext
 from app.db.session import get_db
 from app.memory.long_term.consolidacion import olvidar_sesiones_abiertas
@@ -14,9 +15,10 @@ from app.memory.long_term.repo import borrar_perfil, leer_perfil
 router = APIRouter(prefix="/memoria")
 
 
-def _cliente(ctx: AuthContext = Depends(get_auth_context)) -> AuthContext:
+async def _cliente(ctx: AuthContext = Depends(get_auth_context)) -> AuthContext:
     if ctx.anonimo:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sesion anonima: no hay memoria guardada")
+    await limitar_memoria(ctx)
     return ctx
 
 

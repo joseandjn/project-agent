@@ -8,8 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies.auth import get_auth_context, get_tienda_por_api_key, no_autorizado
+from app.api.v1.dependencies.auth import get_tienda_por_api_key, no_autorizado
+from app.api.v1.dependencies.rate_limit import limitar_refresh
 from app.core.config import get_settings
+from app.core.rate_limit import MINUTO, Regla, consumir
 from app.core.security import AuthContext, emitir_token
 from app.db.models import Cliente, Tienda
 from app.db.session import get_db
@@ -51,6 +53,7 @@ async def emitir(
 ) -> TokenResponse:
     """Abre una sesion de chat nueva. Con `external_user_id` la sesion queda asociada al
     cliente (memoria de largo plazo); sin el, es anonima."""
+    await consumir([Regla("token:tienda", str(tienda.id), get_settings().rl_token_tienda_por_minuto, MINUTO)])
     cliente_id = None
     if request.external_user_id is not None:
         cliente_id = await _cliente_id(db, tienda.id, request.external_user_id)
@@ -59,7 +62,7 @@ async def emitir(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refrescar(
-    ctx: AuthContext = Depends(get_auth_context),
+    ctx: AuthContext = Depends(limitar_refresh),
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     """Renueva un token vigente: misma sesion y mismo cliente, nuevo `exp`. Si la tienda fue

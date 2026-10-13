@@ -2,11 +2,13 @@
 
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.core.rate_limit import MINUTO, LimiteExcedido, Regla, consumir, excedido, ip_cliente
 from app.core.security import AuthContext, TokenInvalido, hash_api_key, validar_token
 from app.db.models import Tienda
 from app.db.session import get_db
@@ -22,14 +24,21 @@ def no_autorizado(detalle: str, bearer: bool = False) -> HTTPException:
 
 
 async def get_tienda_por_api_key(
+    request: Request,
     api_key: Optional[str] = Depends(_api_key_header),
     db: AsyncSession = Depends(get_db),
 ) -> Tienda:
-    if not api_key:
-        raise no_autorizado("Falta el header X-API-Key")
-    tienda = await db.scalar(select(Tienda).where(Tienda.api_key_hash == hash_api_key(api_key)))
+    # Intentos con API key invalida, por IP: frena a quien prueba keys (y no consulta la base
+    # mientras esta bloqueado). Las keys validas no cuentan aca.
+    regla = Regla("api_key_invalida:ip", ip_cliente(request), get_settings().rl_api_key_invalida_ip_por_minuto, MINUTO)
+    if (espera := await excedido(regla)) is not None:
+        raise LimiteExcedido(espera, regla.nombre)
+    tienda = None
+    if api_key:
+        tienda = await db.scalar(select(Tienda).where(Tienda.api_key_hash == hash_api_key(api_key)))
     if tienda is None or not tienda.activa:
-        raise no_autorizado("API key invalida")
+        await consumir([regla])
+        raise no_autorizado("Falta el header X-API-Key" if not api_key else "API key invalida")
     return tienda
 
 

@@ -215,6 +215,15 @@ nuevo con la misma sesión: `POST /api/v1/auth/refresh` con `Authorization: Bear
 > **Cambio incompatible:** `POST /api/v1/chat` ya no acepta `session_id` ni `cliente_id`
 > en el body y responde `401` sin un token válido.
 
+### Rate limits
+
+Por sesión, cliente y tienda (del JWT) y por IP para API keys inválidas, con contadores en
+Redis. Al pasarse: **429** con `Retry-After`. Por defecto: 10 mensajes/min por sesión, 20 por
+cliente, 300/min y 10 000/día por tienda, 120 sesiones nuevas/min por tienda, 10 API keys
+inválidas/min por IP. Todo configurable con `RL_*` en `.env` (`RATE_LIMIT_ENABLED=false` los
+apaga). Además: mensaje de hasta 2000 caracteres y body de hasta 64 KB en Caddy. Detalle:
+[`docs/rate_limits.md`](docs/rate_limits.md).
+
 ### Feedback sobre las respuestas
 
 Cada respuesta de `/api/v1/chat` y `/api/v2/chat` trae un `mensaje_id`. El cliente la vota

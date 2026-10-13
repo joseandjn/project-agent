@@ -40,3 +40,11 @@ def test_comentario_redacta_email_y_telefono():
 
 def test_comentario_vacio_queda_en_none():
     assert FeedbackRequest(mensaje_id=ID, valor="negativo", comentario="   ").comentario is None
+
+
+def test_mensaje_de_chat_tiene_tope_de_largo():
+    from app.models.chat import ChatRequest
+
+    ChatRequest(mensaje="x" * 2000)
+    with pytest.raises(ValidationError):
+        ChatRequest(mensaje="x" * 2001)
