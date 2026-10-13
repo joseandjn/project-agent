@@ -14,6 +14,11 @@
 # (../vethis-chat) y CHAT_API_KEY en el .env (API key de una tienda). Con el chat:
 #   docker compose -f docker-compose.prod.yml --profile chat up -d --build
 # Caddy sirve el chat en "/" y la API en /api/v1, /api/v2, /docs y /health.
+#
+# Neo4j (opcional, perfil "neo4j"): guias nutricionales por tienda. En el .env:
+# NEO4J_URI=bolt://neo4j:7687 y NEO4J_PASSWORD. Sin eso, la API usa la guia por defecto.
+#   docker compose -f docker-compose.prod.yml --profile chat --profile neo4j up -d --build
+#   docker compose -f docker-compose.prod.yml exec api python -m scripts.cargar_guia --tienda <id> data/guias/tienda_demo.yaml
 
 services:
 
@@ -63,6 +68,9 @@ services:
       FORWARDED_ALLOW_IPS: "*"
       POSTGRES_DSN: postgresql+asyncpg://vethis:${POSTGRES_PASSWORD}@postgres:5432/vethis
       REDIS_URL: redis://default:${REDIS_PASSWORD}@redis:6379/0
+      # Vacio => sin Neo4j: guia por defecto (data/guias/tienda_demo.yaml).
+      NEO4J_URI: ${NEO4J_URI:-}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
     expose:
       - "8000"
     depends_on:
@@ -70,6 +78,25 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  neo4j:
+    # Guias nutricionales (app/nutricion/). Sin puertos publicos: solo la API lo ve, por la red
+    # interna. Memoria acotada para convivir con el resto en una VM de 4 GB.
+    profiles: ["neo4j"]
+    image: neo4j:5.26-community
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   chat:
     # Next.js + assistant-ui (https://github.com/joseandjn/vethis-chat). Habla con la API por
@@ -104,6 +131,7 @@ services:
       - api
 
 volumes:
+  neo4j_data:
   postgres_data:
   redis_data:
   caddy_data:

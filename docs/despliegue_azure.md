@@ -354,6 +354,34 @@ Abre `https://<DOMAIN>/` en el navegador. Para actualizar después: `git pull` e
 
 ---
 
+## Paso 9 · (Opcional) Neo4j para la guía nutricional
+
+Sin Neo4j, el asesor usa la guía por defecto (`data/guias/tienda_demo.yaml`, dentro de la
+imagen). Con Neo4j, cada tienda tiene su guía activa y sus versiones
+(`docs/guia_nutricional_neo4j.md`). Neo4j corre en la misma VM, sin puertos públicos y con la
+memoria acotada (~650 MB en uso).
+
+Dentro del servidor:
+
+```bash
+cd ~/project-agent
+git pull
+
+# Contraseña de Neo4j y URI interna, directo al .env (no se muestra en pantalla)
+echo "NEO4J_URI=bolt://neo4j:7687" >> .env
+echo "NEO4J_PASSWORD=$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')" >> .env
+
+docker compose -f docker-compose.prod.yml --profile chat --profile neo4j up -d --build
+
+# Cargar la guía para cada tienda (los IDs salen de Postgres)
+docker compose -f docker-compose.prod.yml exec postgres psql -U vethis -d vethis -c "select id, nombre from tiendas"
+docker compose -f docker-compose.prod.yml exec api python -m scripts.cargar_guia --tienda <id> data/guias/tienda_demo.yaml
+```
+
+Desde ahí, usa siempre `--profile chat --profile neo4j` en los `up`.
+
+---
+
 ## Actualizar la demo
 
 Después de hacer `git push` desde tu Mac:
