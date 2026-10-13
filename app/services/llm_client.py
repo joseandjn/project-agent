@@ -6,8 +6,9 @@ from langchain.agents.middleware import PIIDetectionError
 from app.agent.prompts.perfil_cliente import render_bloque_perfil
 from app.agent.prompts.system_prompt import SYSTEM_PROMPT
 from app.guardrails.pii import build_pii_guardrail, contiene_numero_de_tarjeta
+from app.guardrails.tema import responder_con_control
 from app.memory.long_term.models import PerfilCliente
-from app.memory.short_term.session_memory import get_checkpointer, session_config
+from app.memory.short_term.session_memory import deshacer_turno, get_checkpointer, historial, session_config
 from app.observability.langfuse import callbacks
 from app.services.config_llm import get_chat_model
 from app.tools.langchain_tools import build_tools
@@ -31,9 +32,10 @@ async def generate_reply(mensaje: str, thread_id: str, perfil: Optional[PerfilCl
     if contiene_numero_de_tarjeta(mensaje):
         return RESPUESTA_TARJETA_BLOQUEADA
 
+    checkpointer = await get_checkpointer()
+    previos = await historial(checkpointer, thread_id)
     model = get_chat_model()
     tools = build_tools(thread_id)
-    checkpointer = await get_checkpointer()
     agent = create_agent(
         model,
         tools=tools,
@@ -42,14 +44,20 @@ async def generate_reply(mensaje: str, thread_id: str, perfil: Optional[PerfilCl
         middleware=build_pii_guardrail(),  # redacta email/telefono, bloquea tarjeta
     )
 
-    try:
-        result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": mensaje}]},
-            # callbacks: las llamadas al LLM y a las tools cuelgan de la traza de Langfuse que
-            # abre /chat (vacio si Langfuse esta deshabilitado).
-            config={**session_config(thread_id), "callbacks": callbacks()},
-        )
-    except PIIDetectionError:
-        return RESPUESTA_TARJETA_BLOQUEADA
+    async def correr_agente() -> str:
+        try:
+            result = await agent.ainvoke(
+                {"messages": [{"role": "user", "content": mensaje}]},
+                # callbacks: las llamadas al LLM y a las tools cuelgan de la traza de Langfuse que
+                # abre /chat (vacio si Langfuse esta deshabilitado).
+                config={**session_config(thread_id), "callbacks": callbacks()},
+            )
+        except PIIDetectionError:
+            return RESPUESTA_TARJETA_BLOQUEADA
+        return result["messages"][-1].content
 
-    return result["messages"][-1].content
+    # Control de tema en paralelo con el agente: si el mensaje esta fuera de tema, se responde
+    # una plantilla y se borra el turno del agente de la sesion.
+    return await responder_con_control(
+        mensaje, previos, correr_agente, deshacer=lambda: deshacer_turno(agent, thread_id, len(previos))
+    )

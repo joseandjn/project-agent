@@ -12,5 +12,7 @@ def _sin_langfuse(monkeypatch):
     monkeypatch.setattr(get_settings(), "langfuse_enabled", False)
     # Rate limits apagados salvo en tests/integration/test_rate_limit.py, que los prende.
     monkeypatch.setattr(get_settings(), "rate_limit_enabled", False)
+    # Control de tema apagado (llamaria al LLM real); lo prueban test_tema.py y los evals.
+    monkeypatch.setattr(get_settings(), "tema_guard_enabled", False)
     monkeypatch.setattr(obs, "_cliente", None)
     monkeypatch.setattr(obs, "_inicializado", False)

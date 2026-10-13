@@ -56,6 +56,15 @@ class Settings(BaseSettings):
     # con evals/run_evals_memoria.py.
     memoria_model: Optional[str] = None
 
+    # --- Control de tema (app/guardrails/tema.py): clasifica cada mensaje antes del agente y
+    # responde con una plantilla si esta fuera del tema (salud humana, malestar emocional...).
+    tema_guard_enabled: bool = True
+    tema_model: Optional[str] = None  # vacio => el modelo del chat
+    # Lineas de ayuda que se mencionan en las respuestas de malestar emocional y riesgo.
+    # Valores para Peru: verificar que sigan vigentes antes de produccion.
+    tema_ayuda_salud_mental: str = "En Perú puedes llamar gratis a la Línea 113, opción 5 (salud mental del MINSA)."
+    tema_ayuda_emergencia: str = "Si alguien está en peligro inmediato, llama al 106 (SAMU) o al 105 (Policía)."
+
     # --- Rate limits (docs/rate_limits.md). Por sesion, cliente y tienda (del JWT); por IP solo
     # los intentos con API key invalida. 0 desactiva una regla.
     rate_limit_enabled: bool = True

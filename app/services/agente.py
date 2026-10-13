@@ -23,8 +23,9 @@ from app.agent.contexto import Contexto
 from app.agent.prompts.perfil_cliente import render_bloque_perfil
 from app.agent.prompts.system_prompt import SYSTEM_PROMPT
 from app.guardrails.pii import build_pii_guardrail, contiene_numero_de_tarjeta
+from app.guardrails.tema import responder_con_control
 from app.memory.long_term.models import PerfilCliente
-from app.memory.short_term.session_memory import get_checkpointer, session_config
+from app.memory.short_term.session_memory import deshacer_turno, get_checkpointer, historial, session_config
 from app.observability.langfuse import callbacks
 from app.services.config_llm import get_chat_model
 from app.services.llm_client import RESPUESTA_TARJETA_BLOQUEADA
@@ -78,13 +79,20 @@ async def generar_respuesta(mensaje: str, thread_id: str, perfil: Optional[Perfi
         return RESPUESTA_TARJETA_BLOQUEADA
 
     agente = await get_agente()
-    try:
-        result = await agente.ainvoke(
-            {"messages": [{"role": "user", "content": mensaje}]},
-            config={**session_config(thread_id), "callbacks": callbacks()},
-            context=Contexto(thread_id=thread_id, perfil=perfil),
-        )
-    except PIIDetectionError:
-        return RESPUESTA_TARJETA_BLOQUEADA
+    previos = await historial(await get_checkpointer(), thread_id)
 
-    return result["messages"][-1].content
+    async def correr_agente() -> str:
+        try:
+            result = await agente.ainvoke(
+                {"messages": [{"role": "user", "content": mensaje}]},
+                config={**session_config(thread_id), "callbacks": callbacks()},
+                context=Contexto(thread_id=thread_id, perfil=perfil),
+            )
+        except PIIDetectionError:
+            return RESPUESTA_TARJETA_BLOQUEADA
+        return result["messages"][-1].content
+
+    # Control de tema en paralelo con el agente (ver app/guardrails/tema.py).
+    return await responder_con_control(
+        mensaje, previos, correr_agente, deshacer=lambda: deshacer_turno(agente, thread_id, len(previos))
+    )

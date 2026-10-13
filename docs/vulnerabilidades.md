@@ -25,7 +25,7 @@ Evaluación del backend `project-agent` (VethisAgent) contra la
 
 | ASI | Riesgo | Estado |
 |---|---|---|
-| **ASI01 · Agent Goal Hijack** | 🔴 Alto | Rol y reglas de negocio sostenidos solo por el system prompt |
+| **ASI01 · Agent Goal Hijack** | 🔴 Alto | Reglas de negocio sostenidas solo por el system prompt; ~~salida de tema~~ (control de tema en código, 2026-10-12) |
 | **ASI06 · Memory & Context Poisoning** | 🔴 Alto | ~~`session_id` del cliente~~ (resuelto: sale del JWT) + RAG desde fuentes mutables + feedback de scoring |
 | **ASI03 · Identity & Privilege Abuse** | 🟠 Medio | ~~`/chat` sin auth~~ y ~~`session_id` / `cliente_id` sin verificar~~ (resuelto: JWT propio); ~~falta rate limit~~ (resuelto: `docs/rate_limits.md`) |
 | **ASI09 · Human-Agent Trust Exploitation** | 🟠 Medio-alto | Dominio cuasi-médico; precios/links sin anclaje duro a la fuente |
@@ -53,6 +53,15 @@ que los fuerce.
 - **Inyección indirecta**: ver ASI06 (catálogo / conocimiento en el contexto).
 - Los casos `fuera-de-rol-descuento` y `pregunta-irrelevante` de `evals/casos/casos_prueba.py`
   reconocen el riesgo, pero las evals **miden**, no **bloquean**.
+
+**Actualización (2026-10-12), parcialmente mitigado:** en una prueba real de la demo, una
+conversación que escaló emocionalmente llevó al agente a dar consejos de ansiedad y de salud
+humana (deriva de varios turnos). Ahora un **control de tema en código**
+(`app/guardrails/tema.py`) clasifica cada mensaje antes del agente y responde con una
+plantilla fija lo que está fuera de tema (incluida la inyección "ignora tus reglas…"), con
+una regla de tema reforzada en el prompt como segunda barrera. Eval:
+`python -m evals.run_evals_tema` (gpt-4o-mini 57/57). Siguen solo en el prompt: derivación
+al veterinario, precios anclados y presupuesto (`docs/reglas_de_negocio_en_codigo.md`).
 
 **Mitigación**: guardrails de entrada/salida en código (`app/guardrails/`), no en el prompt.
 Ej.: forzar `derivar_veterinario` si la entrada trae palabras-síntoma; guardrail de salida

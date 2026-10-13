@@ -20,8 +20,9 @@ Nota: requiere Redis con el modulo RediSearch (imagen `redis:8` o `redis-stack`)
 """
 
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
+from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.redis import AsyncShallowRedisSaver
 
 from app.core.config import get_settings
@@ -33,6 +34,26 @@ _lock = asyncio.Lock()
 def session_config(thread_id: str) -> Dict[str, Any]:
     """Config que le dice a LangGraph que hilo (conversacion) cargar/guardar."""
     return {"configurable": {"thread_id": thread_id}}
+
+
+async def historial(checkpointer: Optional[AsyncShallowRedisSaver], thread_id: str) -> List[BaseMessage]:
+    """Mensajes guardados de la sesion (vacio si no hay checkpoint o checkpointer)."""
+    if checkpointer is None:
+        return []
+    tupla = await checkpointer.aget_tuple(session_config(thread_id))
+    return list(tupla.checkpoint["channel_values"].get("messages", [])) if tupla else []
+
+
+async def deshacer_turno(grafo: Any, thread_id: str, desde: int) -> None:
+    """Borra de la sesion los mensajes agregados despues de `desde` (los de un turno que no se
+    debe recordar, p. ej. fuera de tema). Usa RemoveMessage del reducer de mensajes."""
+    from langchain_core.messages import RemoveMessage
+
+    config = session_config(thread_id)
+    estado = await grafo.aget_state(config)
+    nuevos = estado.values.get("messages", [])[desde:]
+    if nuevos:
+        await grafo.aupdate_state(config, {"messages": [RemoveMessage(id=m.id) for m in nuevos]})
 
 
 async def get_checkpointer() -> AsyncShallowRedisSaver:

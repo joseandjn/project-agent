@@ -60,3 +60,19 @@ async def test_historial_persiste_y_sobrevive_a_reabrir_redis(thread_id):
     await generar_respuesta("segundo mensaje", thread_id)
     assert await get_agente() is not primero
     assert await _humanos(thread_id) == ["primer mensaje", "segundo mensaje"]
+
+
+async def test_turno_fuera_de_tema_se_borra_en_redis(thread_id, monkeypatch):
+    """El control de tema cancela el agente y borra su turno del checkpoint de Redis real."""
+    import app.guardrails.tema as tema
+    from app.core.config import get_settings
+    from app.guardrails.tema import respuesta_para
+    from tests.unit.test_tema import _Clasificador
+
+    monkeypatch.setattr(get_settings(), "tema_guard_enabled", True)
+    monkeypatch.setattr(tema, "get_tema_model", lambda: _Clasificador("mascotas"))
+    await generar_respuesta("tengo un perro", thread_id)
+    # Clasificador lento: el agente fake llega a guardar el turno en Redis antes del bloqueo.
+    monkeypatch.setattr(tema, "get_tema_model", lambda: _Clasificador("salud_humana", demora=0.2))
+    assert await generar_respuesta("mi abuelo tiene frio", thread_id) == respuesta_para("salud_humana")
+    assert await _humanos(thread_id) == ["tengo un perro"]

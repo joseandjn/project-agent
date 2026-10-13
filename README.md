@@ -215,6 +215,15 @@ nuevo con la misma sesión: `POST /api/v1/auth/refresh` con `Authorization: Bear
 > **Cambio incompatible:** `POST /api/v1/chat` ya no acepta `session_id` ni `cliente_id`
 > en el body y responde `401` sin un token válido.
 
+### Control de tema
+
+Antes del agente, un LLM clasifica cada mensaje (con los últimos turnos de contexto). Lo que
+no es sobre mascotas —otros temas, salud de personas, malestar emocional o riesgo— recibe
+una respuesta fija, con líneas de ayuda cuando corresponde, sin pasar por el agente.
+Configurable con `TEMA_GUARD_ENABLED`, `TEMA_MODEL` y `TEMA_AYUDA_*`. Eval:
+`python -m evals.run_evals_tema`. Detalle: Control 4 de
+[`docs/reglas_de_negocio_en_codigo.md`](docs/reglas_de_negocio_en_codigo.md).
+
 ### Rate limits
 
 Por sesión, cliente y tienda (del JWT) y por IP para API keys inválidas, con contadores en
