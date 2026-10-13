@@ -49,12 +49,13 @@ deriva al veterinario).
 
 Categorias:
 - mascotas: cualquier pedido o dato sobre mascotas, su alimento, salud o cuidado, o sobre \
-la tienda y sus productos. Si el mensaje mezcla otra cosa con un pedido legitimo de \
+la tienda y sus productos (precios, descuentos, promociones, stock, compra): el asesor sabe \
+responder esas preguntas. Si el mensaje mezcla otra cosa con un pedido legitimo de \
 mascotas, es "mascotas".
 - conversacion: saludos, despedidas, agradecimientos, "ok", preguntas sobre quien es el \
 asesor, o respuestas cortas a lo que pregunto el asesor (mira la conversacion previa).
 - fuera_de_dominio: temas ajenos a mascotas (politica, tareas, programacion, recetas para \
-personas, descuentos que no existen, chistes, otros productos, etc.).
+personas, chistes, productos que no son para mascotas, etc.).
 - salud_humana: sintomas, enfermedades, cuidados o medicamentos de PERSONAS (el cliente, \
 un familiar, un bebe...).
 - malestar_emocional: el cliente cuenta que esta triste, ansioso, estresado, solo o pide \

@@ -5,8 +5,8 @@ from langchain_core.tools import BaseTool, tool
 
 from app.agent.contexto import Contexto
 
+from app.nutricion.servicio import Tema, consultar_guia as _consultar_guia, ficha_producto, racion_para
 from app.tools.buscar_alimentos import buscar_alimentos as _buscar_alimentos
-from app.tools.calcular_racion import calcular_racion as _calcular_racion
 from app.tools.consultar_disponibilidad import consultar_disponibilidad as _consultar_disponibilidad
 from app.tools.derivar_veterinario import derivar_veterinario as _derivar_veterinario
 
@@ -64,11 +64,29 @@ def consultar_disponibilidad(sku: str) -> dict:
 
 
 @tool
-def calcular_racion(peso_mascota_kg: float, sku: str) -> dict:
-    """Calcula la racion diaria, cuanto dura el empaque y el costo mensual de un
-    producto para una mascota de un peso dado."""
-    resultado = _calcular_racion(peso_mascota_kg, sku)
-    return resultado.model_dump() if resultado else {"error": "SKU no encontrado en el catalogo"}
+def ver_ficha_producto(sku: str) -> dict:
+    """Ficha de un producto: ingredientes, proteina principal, etapa, tamano de raza y
+    analisis garantizado (proteina, grasa, fibra, humedad y kcal por kg). Usar cuando el
+    cliente pregunta que contiene o la informacion nutricional de un producto. No incluye
+    precio: para eso, consultar_disponibilidad."""
+    return ficha_producto(sku)
+
+
+# Docstrings compartidas por la version con closure (v1) y la de contexto (v2).
+_DOC_RACION = """Calcula cuanto alimento por dia necesita una mascota con un producto, segun la
+    guia nutricional de la tienda: rango de gramos y kcal diarias, cuanto dura el empaque y
+    el costo mensual. Para premios devuelve el maximo de gramos por dia; para dietas
+    veterinarias indica que la cantidad la define el veterinario.
+    etapa_vida es la de la MASCOTA ("Cachorro", "Adulto", "Senior"); si no se sabe, omitirla."""
+
+_DOC_GUIA = """Consulta la guia nutricional de la tienda (basada en la WSAVA) sobre un tema, para
+    una especie ("Perro" o "Gato"). tema puede ser: "toxicos" (alimentos que nunca debe
+    comer), "premios" (cuanto dar y cuales evitar), "condicion_corporal" (como saber si esta
+    en su peso ideal), "transicion" (como cambiar de alimento), "como_elegir" (que mirar en un
+    alimento), "energia" (calorias diarias) o "condiciones_que_derivan" (enfermedades que
+    debe ver un veterinario). Usar antes de dar cualquier consejo nutricional."""
+
+EtapaVida = Optional[Literal["Cachorro", "Adulto", "Senior"]]
 
 
 def build_tools(session_id: str) -> List[BaseTool]:
@@ -83,7 +101,19 @@ def build_tools(session_id: str) -> List[BaseTool]:
         resultado = _derivar_veterinario(motivo=motivo, session_id=session_id)
         return resultado.model_dump()
 
-    return [buscar_alimentos, consultar_disponibilidad, calcular_racion, derivar_veterinario]
+    # La tienda (y su guia) sale del session_id del closure, nunca del LLM.
+    @tool(description=_DOC_RACION)
+    async def calcular_racion(peso_mascota_kg: float, sku: str, etapa_vida: EtapaVida = None) -> dict:
+        return await racion_para(session_id, peso_mascota_kg, sku, etapa_vida)
+
+    @tool(description=_DOC_GUIA)
+    async def consultar_guia(especie: Literal["Perro", "Gato"], tema: Tema) -> dict:
+        return await _consultar_guia(session_id, especie, tema)
+
+    return [
+        buscar_alimentos, consultar_disponibilidad, calcular_racion, derivar_veterinario,
+        consultar_guia, ver_ficha_producto,
+    ]
 
 
 @tool("derivar_veterinario")
@@ -96,11 +126,25 @@ def derivar_veterinario_con_contexto(motivo: str, runtime: ToolRuntime[Contexto]
     return resultado.model_dump()
 
 
+@tool("calcular_racion", description=_DOC_RACION)
+async def calcular_racion_con_contexto(
+    peso_mascota_kg: float, sku: str, runtime: ToolRuntime[Contexto], etapa_vida: EtapaVida = None
+) -> dict:
+    return await racion_para(runtime.context.thread_id, peso_mascota_kg, sku, etapa_vida)
+
+
+@tool("consultar_guia", description=_DOC_GUIA)
+async def consultar_guia_con_contexto(especie: Literal["Perro", "Gato"], tema: Tema, runtime: ToolRuntime[Contexto]) -> dict:
+    return await _consultar_guia(runtime.context.thread_id, especie, tema)
+
+
 # Tools del agente compartido (`app/services/agente.py`): las mismas, con la sesion leida
 # del contexto del turno en vez de un closure.
 TOOLS_CON_CONTEXTO: List[BaseTool] = [
     buscar_alimentos,
     consultar_disponibilidad,
-    calcular_racion,
+    calcular_racion_con_contexto,
     derivar_veterinario_con_contexto,
+    consultar_guia_con_contexto,
+    ver_ficha_producto,
 ]

@@ -2,9 +2,9 @@
 
 Modela `data/catalogo/alimentos.json` como grafo para explorar relaciones entre
 productos, especie, etapa de vida, tamano de raza, proteina, tipo de alimento e
-ingredientes. **No esta conectado al agente**: `app/` no importa nada de este
-paquete, y el servicio `neo4j` en `docker-compose.yml` no es dependencia de `api`.
-Es un modulo standalone para correr a mano.
+ingredientes. El agente no lo usa directamente; el servicio `neo4j` ahora tambien guarda las
+guias nutricionales por tienda (`app/nutricion/`), que comparten los nodos `Especie`, `Etapa`
+e `Ingrediente`. Por eso recargar el catalogo solo borra productos y nodos huerfanos.
 
 ## Modelo
 

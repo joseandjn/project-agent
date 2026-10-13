@@ -4,359 +4,643 @@
     "nombre": "Vethis Cachorro Raza Pequeña Pollo",
     "presentacion": "Bolsa 3kg",
     "especie": "Perro",
-    "etapa": ["Cachorro"],
+    "etapa": [
+      "Cachorro"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Pequeña",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Arroz", "Aceite de pescado", "Vegetales"],
+    "ingredientes": [
+      "Pollo",
+      "Arroz",
+      "Aceite de pescado",
+      "Vegetales"
+    ],
     "peso_kg": 3.0,
     "precio_por_kg": 18.5,
     "precio_regular": 55.5,
     "disponible": true,
     "stock": 24,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-CACH-PEQ-POL-001",
-    "documento_busqueda": "Alimento seco para perro cachorro de raza pequeña, sabor pollo, con arroz y vegetales, apoya el crecimiento y desarrollo."
+    "documento_busqueda": "Alimento seco para perro cachorro de raza pequeña, sabor pollo, con arroz y vegetales, apoya el crecimiento y desarrollo.",
+    "analisis": {
+      "proteina_min_pct": 29,
+      "grasa_min_pct": 17,
+      "fibra_max_pct": 3.0,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3950,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-CACH-GRA-POL-002",
     "nombre": "Vethis Cachorro Raza Grande Pollo",
     "presentacion": "Bolsa 7.5kg",
     "especie": "Perro",
-    "etapa": ["Cachorro"],
+    "etapa": [
+      "Cachorro"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Grande",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Maiz", "Glucosamina", "Condroitina"],
+    "ingredientes": [
+      "Pollo",
+      "Maiz",
+      "Glucosamina",
+      "Condroitina"
+    ],
     "peso_kg": 7.5,
     "precio_por_kg": 16.9,
     "precio_regular": 126.75,
     "disponible": true,
     "stock": 15,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-CACH-GRA-POL-002",
-    "documento_busqueda": "Alimento seco para cachorro de raza grande, sabor pollo, con glucosamina y condroitina para el desarrollo articular."
+    "documento_busqueda": "Alimento seco para cachorro de raza grande, sabor pollo, con glucosamina y condroitina para el desarrollo articular.",
+    "analisis": {
+      "proteina_min_pct": 27,
+      "grasa_min_pct": 14,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3750,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-GRA-POL-003",
     "nombre": "Vethis Adulto Raza Grande Pollo",
     "presentacion": "Bolsa 15kg",
     "especie": "Perro",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Grande",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Arroz", "Vegetales"],
+    "ingredientes": [
+      "Pollo",
+      "Arroz",
+      "Vegetales"
+    ],
     "peso_kg": 15.0,
     "precio_por_kg": 14.2,
     "precio_regular": 213.0,
     "disponible": true,
     "stock": 10,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-GRA-POL-003",
-    "documento_busqueda": "Alimento seco para perro adulto de raza grande, sabor pollo, mantenimiento diario, con arroz y vegetales."
+    "documento_busqueda": "Alimento seco para perro adulto de raza grande, sabor pollo, mantenimiento diario, con arroz y vegetales.",
+    "analisis": {
+      "proteina_min_pct": 25,
+      "grasa_min_pct": 14,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3700,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-TOD-RES-004",
     "nombre": "Vethis Adulto Todas las Razas Res",
     "presentacion": "Bolsa 15kg",
     "especie": "Perro",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Res",
-    "ingredientes": ["Res", "Avena", "Vegetales"],
+    "ingredientes": [
+      "Res",
+      "Avena",
+      "Vegetales"
+    ],
     "peso_kg": 15.0,
     "precio_por_kg": 13.8,
     "precio_regular": 207.0,
     "disponible": true,
     "stock": 18,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-TOD-RES-004",
-    "documento_busqueda": "Alimento seco para perro adulto de cualquier raza, sabor carne de res, con avena y vegetales, economico y balanceado."
+    "documento_busqueda": "Alimento seco para perro adulto de cualquier raza, sabor carne de res, con avena y vegetales, economico y balanceado.",
+    "analisis": {
+      "proteina_min_pct": 24,
+      "grasa_min_pct": 14,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3650,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-TOD-SPO-005",
     "nombre": "Vethis Adulto Sin Pollo Res y Arroz",
     "presentacion": "Bolsa 7.5kg",
     "especie": "Perro",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Res",
-    "ingredientes": ["Res", "Arroz", "Aceite de girasol"],
+    "ingredientes": [
+      "Res",
+      "Arroz",
+      "Aceite de girasol"
+    ],
     "peso_kg": 7.5,
     "precio_por_kg": 19.9,
     "precio_regular": 149.25,
     "disponible": true,
     "stock": 9,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-TOD-SPO-005",
-    "documento_busqueda": "Alimento seco para perro adulto sin pollo, formulado con res y arroz, ideal para mascotas con sensibilidad al pollo."
+    "documento_busqueda": "Alimento seco para perro adulto sin pollo, formulado con res y arroz, ideal para mascotas con sensibilidad al pollo.",
+    "analisis": {
+      "proteina_min_pct": 24,
+      "grasa_min_pct": 13,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3600,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-TOD-PAT-006",
     "nombre": "Vethis Adulto Hipoalergenico Pato",
     "presentacion": "Bolsa 3kg",
     "especie": "Perro",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pato",
-    "ingredientes": ["Pato", "Papa", "Aceite de salmon"],
+    "ingredientes": [
+      "Pato",
+      "Papa",
+      "Aceite de salmon"
+    ],
     "peso_kg": 3.0,
     "precio_por_kg": 32.0,
     "precio_regular": 96.0,
     "disponible": true,
     "stock": 6,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-TOD-PAT-006",
-    "documento_busqueda": "Alimento seco hipoalergenico para perro adulto, proteina unica de pato y papa, indicado para pieles sensibles y sin pollo."
+    "documento_busqueda": "Alimento seco hipoalergenico para perro adulto, proteina unica de pato y papa, indicado para pieles sensibles y sin pollo.",
+    "analisis": {
+      "proteina_min_pct": 23,
+      "grasa_min_pct": 13,
+      "fibra_max_pct": 4.0,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3600,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-SEN-TOD-SAL-007",
     "nombre": "Vethis Senior Salmon",
     "presentacion": "Bolsa 7.5kg",
     "especie": "Perro",
-    "etapa": ["Senior"],
+    "etapa": [
+      "Senior"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Salmón",
-    "ingredientes": ["Salmon", "Arroz", "Glucosamina"],
+    "ingredientes": [
+      "Salmon",
+      "Arroz",
+      "Glucosamina"
+    ],
     "peso_kg": 7.5,
     "precio_por_kg": 21.5,
     "precio_regular": 161.25,
     "disponible": true,
     "stock": 11,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-SEN-TOD-SAL-007",
-    "documento_busqueda": "Alimento seco para perro senior, sabor salmon, con glucosamina para el cuidado de articulaciones en la edad avanzada."
+    "documento_busqueda": "Alimento seco para perro senior, sabor salmon, con glucosamina para el cuidado de articulaciones en la edad avanzada.",
+    "analisis": {
+      "proteina_min_pct": 23,
+      "grasa_min_pct": 10,
+      "fibra_max_pct": 4.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3400,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-TOD-COR-008",
     "nombre": "Vethis Adulto Premium Cordero",
     "presentacion": "Bolsa 15kg",
     "especie": "Perro",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Cordero",
-    "ingredientes": ["Cordero", "Arroz integral", "Aceite de oliva"],
+    "ingredientes": [
+      "Cordero",
+      "Arroz integral",
+      "Aceite de oliva"
+    ],
     "peso_kg": 15.0,
     "precio_por_kg": 24.9,
     "precio_regular": 373.5,
     "disponible": true,
     "stock": 7,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-TOD-COR-008",
-    "documento_busqueda": "Alimento seco premium para perro adulto, sabor cordero con arroz integral y aceite de oliva, formula superior."
+    "documento_busqueda": "Alimento seco premium para perro adulto, sabor cordero con arroz integral y aceite de oliva, formula superior.",
+    "analisis": {
+      "proteina_min_pct": 26,
+      "grasa_min_pct": 15,
+      "fibra_max_pct": 3.0,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3800,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-TOD-POL-009",
     "nombre": "Vethis Economico Adulto Pollo",
     "presentacion": "Bolsa 15kg",
     "especie": "Perro",
-    "etapa": ["Adulto", "Todas las edades"],
+    "etapa": [
+      "Adulto",
+      "Todas las edades"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Maiz", "Soya"],
+    "ingredientes": [
+      "Pollo",
+      "Maiz",
+      "Soya"
+    ],
     "peso_kg": 15.0,
     "precio_por_kg": 9.9,
     "precio_regular": 148.5,
     "disponible": true,
     "stock": 30,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-TOD-POL-009",
-    "documento_busqueda": "Alimento seco economico para perro de cualquier edad, sabor pollo, opcion balanceada de bajo costo."
+    "documento_busqueda": "Alimento seco economico para perro de cualquier edad, sabor pollo, opcion balanceada de bajo costo.",
+    "analisis": {
+      "proteina_min_pct": 22,
+      "grasa_min_pct": 11,
+      "fibra_max_pct": 4.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3450,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-REN-MED-010",
     "nombre": "Vethis Medicado Renal Perro",
     "presentacion": "Bolsa 3kg",
     "especie": "Perro",
-    "etapa": ["Adulto", "Senior"],
+    "etapa": [
+      "Adulto",
+      "Senior"
+    ],
     "tipo_alimento": "Medicado",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Proteina hidrolizada", "Aceite de pescado", "Fosforo controlado"],
+    "ingredientes": [
+      "Proteina hidrolizada",
+      "Aceite de pescado",
+      "Fosforo controlado"
+    ],
     "peso_kg": 3.0,
     "precio_por_kg": 45.0,
     "precio_regular": 135.0,
     "disponible": true,
     "stock": 5,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-REN-MED-010",
-    "documento_busqueda": "Alimento medicado con fosforo controlado para perros con enfermedad renal, requiere indicacion veterinaria previa."
+    "documento_busqueda": "Alimento medicado con fosforo controlado para perros con enfermedad renal, requiere indicacion veterinaria previa.",
+    "analisis": {
+      "proteina_min_pct": 14,
+      "grasa_min_pct": 16,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3850,
+      "es_demo": true,
+      "dieta_veterinaria": true
+    }
   },
   {
     "sku": "DOG-SNACK-POL-011",
     "nombre": "Vethis Snack Perro Pollo",
     "presentacion": "Bolsa 200g",
     "especie": "Perro",
-    "etapa": ["Todas las edades"],
+    "etapa": [
+      "Todas las edades"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo deshidratado"],
+    "ingredientes": [
+      "Pollo deshidratado"
+    ],
     "peso_kg": 0.2,
     "precio_por_kg": 55.0,
     "precio_regular": 11.0,
     "disponible": true,
     "stock": 40,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-SNACK-POL-011",
-    "documento_busqueda": "Snack deshidratado de pollo para perros de cualquier edad, premio de entrenamiento."
+    "documento_busqueda": "Snack deshidratado de pollo para perros de cualquier edad, premio de entrenamiento.",
+    "analisis": {
+      "proteina_min_pct": 30,
+      "grasa_min_pct": 10,
+      "fibra_max_pct": 2.0,
+      "humedad_max_pct": 15,
+      "kcal_por_kg": 3200,
+      "es_demo": true,
+      "categoria": "premio"
+    }
   },
   {
     "sku": "CAT-KIT-POL-012",
     "nombre": "Vethis Kitten Pollo",
     "presentacion": "Bolsa 1.5kg",
     "especie": "Gato",
-    "etapa": ["Cachorro"],
+    "etapa": [
+      "Cachorro"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Arroz", "DHA"],
+    "ingredientes": [
+      "Pollo",
+      "Arroz",
+      "DHA"
+    ],
     "peso_kg": 1.5,
     "precio_por_kg": 28.0,
     "precio_regular": 42.0,
     "disponible": true,
     "stock": 20,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-KIT-POL-012",
-    "documento_busqueda": "Alimento seco para gatitos, sabor pollo, con DHA para el desarrollo cerebral y visual."
+    "documento_busqueda": "Alimento seco para gatitos, sabor pollo, con DHA para el desarrollo cerebral y visual.",
+    "analisis": {
+      "proteina_min_pct": 36,
+      "grasa_min_pct": 20,
+      "fibra_max_pct": 2.5,
+      "humedad_max_pct": 9,
+      "kcal_por_kg": 4150,
+      "es_demo": true
+    }
   },
   {
     "sku": "CAT-ADU-POL-013",
     "nombre": "Vethis Adulto Gato Pollo",
     "presentacion": "Bolsa 3kg",
     "especie": "Gato",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Arroz", "Taurina"],
+    "ingredientes": [
+      "Pollo",
+      "Arroz",
+      "Taurina"
+    ],
     "peso_kg": 3.0,
     "precio_por_kg": 25.5,
     "precio_regular": 76.5,
     "disponible": true,
     "stock": 22,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-ADU-POL-013",
-    "documento_busqueda": "Alimento seco para gato adulto, sabor pollo, con taurina para la salud cardiaca y visual."
+    "documento_busqueda": "Alimento seco para gato adulto, sabor pollo, con taurina para la salud cardiaca y visual.",
+    "analisis": {
+      "proteina_min_pct": 32,
+      "grasa_min_pct": 14,
+      "fibra_max_pct": 3.0,
+      "humedad_max_pct": 9,
+      "kcal_por_kg": 3900,
+      "es_demo": true
+    }
   },
   {
     "sku": "CAT-ADU-SAL-HUM-014",
     "nombre": "Vethis Adulto Gato Salmon Humedo",
     "presentacion": "Lata 400g",
     "especie": "Gato",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Salmón",
-    "ingredientes": ["Salmon", "Caldo natural"],
+    "ingredientes": [
+      "Salmon",
+      "Caldo natural"
+    ],
     "peso_kg": 0.4,
     "precio_por_kg": 32.5,
     "precio_regular": 13.0,
     "disponible": true,
     "stock": 35,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-ADU-SAL-HUM-014",
-    "documento_busqueda": "Alimento humedo en lata para gato adulto, sabor salmon en caldo natural, alta palatabilidad."
+    "documento_busqueda": "Alimento humedo en lata para gato adulto, sabor salmon en caldo natural, alta palatabilidad.",
+    "analisis": {
+      "proteina_min_pct": 11,
+      "grasa_min_pct": 5,
+      "fibra_max_pct": 0.5,
+      "humedad_max_pct": 80,
+      "kcal_por_kg": 950,
+      "es_demo": true
+    }
   },
   {
     "sku": "CAT-SEN-PAV-015",
     "nombre": "Vethis Senior Gato Pavo",
     "presentacion": "Bolsa 3kg",
     "especie": "Gato",
-    "etapa": ["Senior"],
+    "etapa": [
+      "Senior"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pavo",
-    "ingredientes": ["Pavo", "Arroz", "Antioxidantes"],
+    "ingredientes": [
+      "Pavo",
+      "Arroz",
+      "Antioxidantes"
+    ],
     "peso_kg": 3.0,
     "precio_por_kg": 29.9,
     "precio_regular": 89.7,
     "disponible": true,
     "stock": 8,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-SEN-PAV-015",
-    "documento_busqueda": "Alimento seco para gato senior, sabor pavo, con antioxidantes para el cuidado en la edad avanzada."
+    "documento_busqueda": "Alimento seco para gato senior, sabor pavo, con antioxidantes para el cuidado en la edad avanzada.",
+    "analisis": {
+      "proteina_min_pct": 30,
+      "grasa_min_pct": 11,
+      "fibra_max_pct": 4.0,
+      "humedad_max_pct": 9,
+      "kcal_por_kg": 3600,
+      "es_demo": true
+    }
   },
   {
     "sku": "CAT-URI-MED-016",
     "nombre": "Vethis Medicado Urinario Gato",
     "presentacion": "Bolsa 1.5kg",
     "especie": "Gato",
-    "etapa": ["Adulto", "Senior"],
+    "etapa": [
+      "Adulto",
+      "Senior"
+    ],
     "tipo_alimento": "Medicado",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Proteina controlada", "Minerales balanceados"],
+    "ingredientes": [
+      "Proteina controlada",
+      "Minerales balanceados"
+    ],
     "peso_kg": 1.5,
     "precio_por_kg": 48.0,
     "precio_regular": 72.0,
     "disponible": true,
     "stock": 4,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-URI-MED-016",
-    "documento_busqueda": "Alimento medicado para gatos con problemas del tracto urinario, requiere indicacion veterinaria previa."
+    "documento_busqueda": "Alimento medicado para gatos con problemas del tracto urinario, requiere indicacion veterinaria previa.",
+    "analisis": {
+      "proteina_min_pct": 32,
+      "grasa_min_pct": 14,
+      "fibra_max_pct": 1.5,
+      "humedad_max_pct": 9,
+      "kcal_por_kg": 3850,
+      "es_demo": true,
+      "dieta_veterinaria": true
+    }
   },
   {
     "sku": "CAT-ADU-ECO-POL-017",
     "nombre": "Vethis Economico Gato Pollo",
     "presentacion": "Bolsa 3kg",
     "especie": "Gato",
-    "etapa": ["Adulto", "Todas las edades"],
+    "etapa": [
+      "Adulto",
+      "Todas las edades"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pollo",
-    "ingredientes": ["Pollo", "Maiz", "Soya"],
+    "ingredientes": [
+      "Pollo",
+      "Maiz",
+      "Soya"
+    ],
     "peso_kg": 3.0,
     "precio_por_kg": 15.9,
     "precio_regular": 47.7,
     "disponible": true,
     "stock": 27,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-ADU-ECO-POL-017",
-    "documento_busqueda": "Alimento seco economico para gato adulto, sabor pollo, opcion balanceada de bajo costo."
+    "documento_busqueda": "Alimento seco economico para gato adulto, sabor pollo, opcion balanceada de bajo costo.",
+    "analisis": {
+      "proteina_min_pct": 30,
+      "grasa_min_pct": 12,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3750,
+      "es_demo": true
+    }
   },
   {
     "sku": "CAT-SNACK-SAL-018",
     "nombre": "Vethis Snack Gato Salmon",
     "presentacion": "Bolsa 100g",
     "especie": "Gato",
-    "etapa": ["Todas las edades"],
+    "etapa": [
+      "Todas las edades"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Salmón",
-    "ingredientes": ["Salmon deshidratado"],
+    "ingredientes": [
+      "Salmon deshidratado"
+    ],
     "peso_kg": 0.1,
     "precio_por_kg": 70.0,
     "precio_regular": 7.0,
     "disponible": true,
     "stock": 50,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-SNACK-SAL-018",
-    "documento_busqueda": "Snack deshidratado de salmon para gatos de cualquier edad, premio saludable."
+    "documento_busqueda": "Snack deshidratado de salmon para gatos de cualquier edad, premio saludable.",
+    "analisis": {
+      "proteina_min_pct": 32,
+      "grasa_min_pct": 12,
+      "fibra_max_pct": 2.0,
+      "humedad_max_pct": 12,
+      "kcal_por_kg": 3400,
+      "es_demo": true,
+      "categoria": "premio"
+    }
   },
   {
     "sku": "CAT-KIT-PAV-HUM-019",
     "nombre": "Vethis Kitten Pavo Humedo",
     "presentacion": "Lata 400g",
     "especie": "Gato",
-    "etapa": ["Cachorro"],
+    "etapa": [
+      "Cachorro"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Todas las razas",
     "proteina_principal": "Pavo",
-    "ingredientes": ["Pavo", "Caldo natural", "DHA"],
+    "ingredientes": [
+      "Pavo",
+      "Caldo natural",
+      "DHA"
+    ],
     "peso_kg": 0.4,
     "precio_por_kg": 35.0,
     "precio_regular": 14.0,
     "disponible": false,
     "stock": 0,
     "url_producto": "https://tienda-vethis.example.com/producto/CAT-KIT-PAV-HUM-019",
-    "documento_busqueda": "Alimento humedo en lata para gatitos, sabor pavo con DHA, alta palatabilidad para el destete."
+    "documento_busqueda": "Alimento humedo en lata para gatitos, sabor pavo con DHA, alta palatabilidad para el destete.",
+    "analisis": {
+      "proteina_min_pct": 12,
+      "grasa_min_pct": 6,
+      "fibra_max_pct": 0.5,
+      "humedad_max_pct": 78,
+      "kcal_por_kg": 1050,
+      "es_demo": true
+    }
   },
   {
     "sku": "DOG-ADU-GRA-COR-020",
     "nombre": "Vethis Adulto Raza Grande Cordero",
     "presentacion": "Bolsa 15kg",
     "especie": "Perro",
-    "etapa": ["Adulto"],
+    "etapa": [
+      "Adulto"
+    ],
     "tipo_alimento": "Diario",
     "tamano_raza": "Grande",
     "proteina_principal": "Cordero",
-    "ingredientes": ["Cordero", "Arroz", "Condroitina"],
+    "ingredientes": [
+      "Cordero",
+      "Arroz",
+      "Condroitina"
+    ],
     "peso_kg": 15.0,
     "precio_por_kg": 17.9,
     "precio_regular": 268.5,
     "disponible": true,
     "stock": 12,
     "url_producto": "https://tienda-vethis.example.com/producto/DOG-ADU-GRA-COR-020",
-    "documento_busqueda": "Alimento seco para perro adulto de raza grande, sabor cordero, con condroitina para el soporte articular."
+    "documento_busqueda": "Alimento seco para perro adulto de raza grande, sabor cordero, con condroitina para el soporte articular.",
+    "analisis": {
+      "proteina_min_pct": 24,
+      "grasa_min_pct": 13,
+      "fibra_max_pct": 3.5,
+      "humedad_max_pct": 10,
+      "kcal_por_kg": 3600,
+      "es_demo": true
+    }
   }
 ]

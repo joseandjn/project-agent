@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.db.session import close_engine, get_sessionmaker
 from app.memory.long_term.consolidacion import close_redis, sweeper
 from app.memory.short_term.session_memory import close_checkpointer, get_checkpointer
+from app.nutricion.repo import close_neo4j
 from app.observability.langfuse import cerrar_langfuse, get_langfuse
 from app.services.agente import get_agente, reset_agente
 
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
     reset_agente()
     await close_checkpointer()
     await close_engine()
+    await close_neo4j()
     cerrar_langfuse()  # envia las trazas pendientes
 
 

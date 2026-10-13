@@ -1,0 +1,170 @@
+# Guia nutricional de la Tienda Demo (ambiente controlado, no para produccion).
+#
+# Formato canonico de docs/guia_nutricional_neo4j.md: se valida con Pydantic y se carga a
+# Neo4j con scripts/cargar_guia.py (pendiente). Cada regla cita su fuente:
+#   - wsava_*  -> documentos del WSAVA Global Nutrition Toolkit (resumidos, no copiados).
+#   - demo     -> regla interna de la demo, SIN fuente veterinaria: revisar antes de usar.
+#
+# AVISO: guia de demostracion, no validada por un veterinario. El asesor debe presentarla
+# como orientacion general y derivar al veterinario ante cualquier condicion de salud.
+
+meta:
+  tienda: Tienda Demo
+  version: 1
+  estado: aprobada          # borrador -> aprobada (revisada) -> activa (al cargarla)
+  aprobada_por: "Demo (sin revision veterinaria; ambiente controlado)"
+  idioma: es
+  aviso: >-
+    Orientacion general basada en las guias de nutricion de la WSAVA. No reemplaza la
+    evaluacion de un veterinario.
+
+fuentes:
+  wsava_calorias_perro:
+    titulo: "WSAVA — Calorie Ranges for an Average Healthy Adult Dog in Ideal Body Condition (julio 2020)"
+    url: https://wsava.org/wp-content/uploads/2020/07/Calorie-Needs-for-Healthy-Adult-Dogs-updated-July-2020.pdf
+  wsava_calorias_gato:
+    titulo: "WSAVA — Calorie Needs for an Average Healthy Adult Cat in Ideal Body Condition (julio 2020)"
+    url: https://wsava.org/wp-content/uploads/2020/07/Calorie-Needs-for-Healthy-Adult-Cats-updated-July-2020.pdf
+  wsava_bcs_perro:
+    titulo: "WSAVA — Body Condition Score, Dog (2025)"
+    url: https://wsava.org/wp-content/uploads/2025/06/WSAVA_BCSCat_BCSDog_Nutrition_250612.pdf
+  wsava_bcs_gato:
+    titulo: "WSAVA — Body Condition Score, Cat (2025)"
+    url: https://wsava.org/wp-content/uploads/2025/06/WSAVA_BCSCat_BCSCat_Nutrition_250612.pdf
+  wsava_premios_perro:
+    titulo: "WSAVA — Feeding treats to your dog (2025)"
+    url: https://wsava.org/wp-content/uploads/2025/11/WSAVA_GuidetoTreats_Dogs_251107.pdf
+  wsava_premios_gato:
+    titulo: "WSAVA — Feeding treats to your cat (2025)"
+    url: https://wsava.org/wp-content/uploads/2025/11/WSAVA_GuidetoTreats_Cats_251107.pdf
+  wsava_seleccion:
+    titulo: "WSAVA Global Nutrition Committee — Guidelines on Selecting Pet Foods (2021)"
+    url: https://wsava.org/wp-content/uploads/2021/04/Selecting-a-pet-food-for-your-pet-updated-2021_WSAVA-Global-Nutrition-Toolkit.pdf
+  demo:
+    titulo: "Regla interna de la demo (sin fuente veterinaria)"
+    url: null
+
+# --- Energia diaria (kcal/dia) ------------------------------------------------------------
+# La racion en gramos sale de: kcal_dia / kcal_por_kg_del_producto * 1000.
+# Usa las kcal/kg del analisis de cada producto (data/catalogo/alimentos.json, valores demo).
+energia:
+  - especie: [Perro]
+    etapas: [Adulto, Senior, Todas las edades]
+    metodo: kcal
+    formula: "entre 1.2 y 1.5 x (70 x peso_kg^0.75)"
+    kcal_min: {factor: 84, exponente: 0.75}    # 1.2 x 70
+    kcal_max: {factor: 105, exponente: 0.75}   # 1.5 x 70
+    nota: >-
+      Rango para un perro adulto sano en condicion corporal ideal. Cada animal es distinto:
+      es un punto de partida y se ajusta para mantener la condicion corporal ideal.
+    verificacion: "20 kg -> 794-993 kcal/dia (tabla WSAVA: 790-993); 2 kg -> 141-177 (tabla: 140-177)"
+    fuente: wsava_calorias_perro
+  - especie: [Gato]
+    etapas: [Adulto, Senior, Todas las edades]
+    metodo: kcal
+    formula: "entre 130 x peso_kg^0.4 (propenso a sobrepeso) y 100 x peso_kg^0.67 (delgado); el rango va del menor al mayor de los dos"
+    # Se cruzan cerca de 2,6 kg: debajo de ese peso la primera da mas que la segunda.
+    kcal_min: {factor: 130, exponente: 0.4}
+    kcal_max: {factor: 100, exponente: 0.67}
+    rango: menor_y_mayor
+    nota: >-
+      Rango para un gato adulto sano en condicion corporal ideal (formulas NRC 2006 citadas
+      por la WSAVA). Punto de partida; se ajusta segun la condicion corporal.
+    verificacion: "2 kg -> 159-172 (tabla WSAVA: 160-170); 4 kg -> 226-253 (tabla: 225-250); 6 kg -> 266-332 (tabla: 265-330)"
+    fuente: wsava_calorias_gato
+  - especie: [Perro, Gato]
+    etapas: [Cachorro]
+    metodo: porcentaje_peso
+    pct_peso: 4
+    formula: "4% del peso corporal al dia"
+    nota: >-
+      Regla interna de la demo (las fuentes WSAVA usadas cubren adultos). El crecimiento
+      necesita control veterinario: el asesor lo recomienda siempre para cachorros y gatitos.
+    fuente: demo
+
+# --- Premios y snacks ---------------------------------------------------------------------
+premios:
+  - especie: [Perro, Gato]
+    regla: "Los premios no deben superar el 10% de las calorias diarias y nunca reemplazan una comida."
+    max_porcentaje_kcal: 10
+    fuente: [wsava_premios_perro, wsava_premios_gato]
+  - especie: [Perro, Gato]
+    regla: "Si la mascota tiene una condicion medica, sensibilidad alimentaria o dieta indicada por el veterinario, los premios comunes pueden no ser adecuados: consultar al veterinario."
+    deriva_veterinario: true
+    fuente: [wsava_premios_perro, wsava_premios_gato]
+
+riesgos_premios:
+  - especie: [Perro, Gato]
+    riesgo: "Huesos cocidos o crudos: pueden causar lesiones u obstruccion."
+    fuente: [wsava_premios_perro, wsava_premios_gato]
+  - especie: [Perro, Gato]
+    riesgo: "Premios crudos de origen animal sin procesar: riesgo de patogenos."
+    fuente: [wsava_premios_perro, wsava_premios_gato]
+  - especie: [Perro]
+    riesgo: "Masticables muy duros (cuernos, pezunas) o con bordes filosos: evitar."
+    fuente: wsava_premios_perro
+
+# --- Alimentos toxicos (no darlos nunca) -------------------------------------------------
+toxicos:
+  - especie: [Perro]
+    ingredientes: [chocolate, nueces de macadamia, cebolla, puerro, chalota, ajo, cebollino,
+                   uvas, pasas, xilitol, alcohol, masa cruda con levadura, cafe, te, bebidas energizantes]
+    fuente: wsava_premios_perro
+  - especie: [Gato]
+    ingredientes: [cebolla, puerro, chalota, ajo, cebollino, uvas, pasas, chocolate, xilitol,
+                   alcohol, masa cruda con levadura, cafe, te, bebidas energizantes, leche y lacteos]
+    nota: "Muchos gatos son intolerantes a la lactosa."
+    fuente: wsava_premios_gato
+
+# --- Condicion corporal ------------------------------------------------------------------
+condicion_corporal:
+  escala: "1 a 9"
+  por_especie:
+  - especie: [Perro]
+    ideal: [4, 5]
+    senales_ideal: "costillas se palpan sin exceso de grasa; cintura visible desde arriba; abdomen recogido visto de lado"
+    fuente: wsava_bcs_perro
+  - especie: [Gato]
+    ideal: [4, 5]
+    nota: "Un 6/9 puede ser aceptable en algunos gatos, sobre todo mayores."
+    senales_ideal: "bien proporcionado; costillas se palpan con poca grasa; cintura detras de las costillas"
+    fuente: wsava_bcs_gato
+  regla_asesor: >-
+    Si el cliente describe a su mascota muy delgada o con sobrepeso, el asesor no ajusta la
+    racion por su cuenta ni recomienda una dieta de reduccion: recomienda una evaluacion
+    veterinaria.
+  deriva_veterinario: true
+  fuente_regla: demo
+
+# --- Como elegir un alimento -------------------------------------------------------------
+seleccion_alimento:
+  - regla: "Debe ser un alimento completo y balanceado para la etapa de vida de la mascota."
+    fuente: wsava_seleccion
+  - regla: "Los alimentos 'para todas las edades' estan formulados para crecimiento y reproduccion."
+    fuente: wsava_seleccion
+  - regla: "Los alimentos complementarios o de uso intermitente no deben superar el 10% de la dieta, salvo indicacion veterinaria."
+    fuente: wsava_seleccion
+  - regla: "Conocer las calorias por kg o por porcion ayuda a no sobrealimentar."
+    fuente: wsava_seleccion
+
+# --- Transicion de alimento --------------------------------------------------------------
+transicion:
+  dias: 7
+  pasos: ["dias 1-2: 25% nuevo", "dias 3-4: 50% nuevo", "dias 5-6: 75% nuevo", "dia 7: 100% nuevo"]
+  nota: "Si aparecen vomitos o diarrea durante el cambio, consultar al veterinario."
+  fuente: demo   # practica habitual; no esta en los documentos WSAVA revisados
+
+# --- Condiciones que siempre derivan al veterinario --------------------------------------
+# El asesor no recomienda dietas para estas condiciones: deriva (derivar_veterinario).
+condiciones_derivar:
+  - enfermedad renal
+  - diabetes
+  - pancreatitis
+  - enfermedad hepatica
+  - alergias o dermatitis
+  - vomitos o diarrea
+  - perdida de peso o de apetito sin causa conocida
+  - obesidad o sobrepeso marcado
+  - gestacion o lactancia
+  - cualquier dieta medicada o prescrita
+fuente_condiciones_derivar: demo   # politica de la tienda: el asesor no da consejo clinico
