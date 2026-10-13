@@ -22,6 +22,7 @@ from langgraph.graph.state import CompiledStateGraph
 from app.agent.contexto import Contexto
 from app.agent.prompts.perfil_cliente import render_bloque_perfil
 from app.agent.prompts.system_prompt import SYSTEM_PROMPT
+from app.guardrails.limites import build_limites, config_de_turno, correr_turno
 from app.guardrails.pii import build_pii_guardrail, contiene_numero_de_tarjeta
 from app.guardrails.tema import responder_con_control
 from app.memory.long_term.models import PerfilCliente
@@ -56,7 +57,7 @@ async def get_agente() -> CompiledStateGraph:
                 get_chat_model(),
                 tools=TOOLS_CON_CONTEXTO,
                 # El prompt dinamico va primero: el PII de entrada redacta mensajes, no el prompt.
-                middleware=[prompt_con_perfil, *build_pii_guardrail()],
+                middleware=[prompt_con_perfil, *build_pii_guardrail(), *build_limites()],
                 context_schema=Contexto,
                 checkpointer=checkpointer,
             )
@@ -81,18 +82,23 @@ async def generar_respuesta(mensaje: str, thread_id: str, perfil: Optional[Perfi
     agente = await get_agente()
     previos = await historial(await get_checkpointer(), thread_id)
 
-    async def correr_agente() -> str:
+    def deshacer():
+        return deshacer_turno(agente, thread_id, len(previos))
+
+    async def invocar() -> str:
         try:
             result = await agente.ainvoke(
                 {"messages": [{"role": "user", "content": mensaje}]},
-                config={**session_config(thread_id), "callbacks": callbacks()},
+                config=config_de_turno({**session_config(thread_id), "callbacks": callbacks()}),
                 context=Contexto(thread_id=thread_id, perfil=perfil),
             )
         except PIIDetectionError:
             return RESPUESTA_TARJETA_BLOQUEADA
         return result["messages"][-1].content
 
+    async def correr_agente() -> str:
+        # Timeout del turno y limites (app/guardrails/limites.py).
+        return await correr_turno(invocar, deshacer)
+
     # Control de tema en paralelo con el agente (ver app/guardrails/tema.py).
-    return await responder_con_control(
-        mensaje, previos, correr_agente, deshacer=lambda: deshacer_turno(agente, thread_id, len(previos))
-    )
+    return await responder_con_control(mensaje, previos, correr_agente, deshacer=deshacer)

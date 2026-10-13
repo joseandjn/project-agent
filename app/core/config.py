@@ -5,6 +5,11 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# Pasos del grafo por cada llamada al modelo (medido: ~12 con los middlewares de PII y de
+# limites), con margen. Ver app/guardrails/limites.py.
+PASOS_POR_LLAMADA_AL_MODELO = 15
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -56,6 +61,19 @@ class Settings(BaseSettings):
     # con evals/run_evals_memoria.py.
     memoria_model: Optional[str] = None
 
+    # --- Limites por turno del agente (app/guardrails/limites.py) y del proveedor de LLM ---
+    agente_max_llamadas_modelo: int = 8  # un turno con busqueda, precios y racion usa ~4
+    agente_max_llamadas_tools: int = 12
+    # recursion_limit del grafo: tope duro. Cada llamada al modelo usa ~12 pasos (los
+    # middlewares de PII y de limites son nodos), asi que tiene que quedar por encima de
+    # PASOS_POR_LLAMADA * AGENTE_MAX_LLAMADAS_MODELO (se valida abajo).
+    agente_max_pasos: int = 150
+    agente_timeout_segundos: float = 60
+    llm_timeout_segundos: float = 30  # por request al proveedor
+    llm_max_reintentos: int = 2
+    # Modelo de respaldo si el principal falla: "modelo" (mismo proveedor) o "proveedor:modelo".
+    llm_fallback_model: Optional[str] = None
+
     # --- Control de tema (app/guardrails/tema.py): clasifica cada mensaje antes del agente y
     # responde con una plantilla si esta fuera del tema (salud humana, malestar emocional...).
     tema_guard_enabled: bool = True
@@ -96,6 +114,16 @@ class Settings(BaseSettings):
     # apuntar a un modelo mas grande solo para evaluar (ej. un Ollama local mas capaz)
     # sin cambiar el modelo que sirve el chat real.
     eval_judge_model: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _pasos_alcanzan_para_las_llamadas(self) -> "Settings":
+        if self.agente_max_pasos < PASOS_POR_LLAMADA_AL_MODELO * self.agente_max_llamadas_modelo:
+            raise ValueError(
+                f"AGENTE_MAX_PASOS ({self.agente_max_pasos}) es muy bajo para AGENTE_MAX_LLAMADAS_MODELO "
+                f"({self.agente_max_llamadas_modelo}): cada llamada usa ~{PASOS_POR_LLAMADA_AL_MODELO} pasos "
+                "y los turnos normales se cortarian"
+            )
+        return self
 
     @model_validator(mode="after")
     def _inactividad_menor_que_ttl(self) -> "Settings":

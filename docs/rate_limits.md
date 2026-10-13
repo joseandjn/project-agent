@@ -69,6 +69,36 @@ durante el minuto: así no se pueden seguir probando keys.
 
 ---
 
+## Límites dentro de un turno
+
+Los rate limits frenan muchos mensajes; esto frena **un** mensaje que hace que el agente
+llame al modelo o a las tools en bucle (`app/guardrails/limites.py`, v1 y v2):
+
+| Límite | Por defecto | Variable | Al pasarse |
+|---|---|---|---|
+| Llamadas al modelo por turno (`ModelCallLimitMiddleware`) | 8 (un turno con búsqueda, precios y ración usa ~4) | `AGENTE_MAX_LLAMADAS_MODELO` | Se corta el turno |
+| Llamadas a tools por turno (`ToolCallLimitMiddleware`) | 12 | `AGENTE_MAX_LLAMADAS_TOOLS` | La tool se bloquea y el modelo sigue |
+| `derivar_veterinario` por turno | 1 | — | Ídem (no escribe varias derivaciones) |
+| Pasos del grafo (`recursion_limit`) | 150 | `AGENTE_MAX_PASOS` | Se corta el turno |
+| Duración del turno | 60 s | `AGENTE_TIMEOUT_SEGUNDOS` | Se corta el turno |
+| Timeout de cada request al proveedor | 30 s | `LLM_TIMEOUT_SEGUNDOS` | Reintenta |
+| Reintentos por request | 2 | `LLM_MAX_REINTENTOS` | Error |
+| Modelo de respaldo (`ModelFallbackMiddleware`) | desactivado | `LLM_FALLBACK_MODEL` (`"modelo"` o `"proveedor:modelo"`) | — |
+
+- **Cuando se corta un turno**, se **borran de la sesión los mensajes de ese turno** (pudo
+  quedar una tool call sin respuesta, que rompería el turno siguiente) y el cliente recibe un
+  mensaje fijo en español. Por eso se usa `exit_behavior="error"`: el `"end"` de LangChain le
+  respondería al cliente un texto en inglés.
+- **Pasos del grafo:** cada llamada al modelo usa ~12 pasos (los middlewares de PII y de
+  límites son nodos del grafo). Con un tope de 25 se cortaban los turnos normales; la
+  configuración ahora valida al arrancar que `AGENTE_MAX_PASOS ≥ 15 × AGENTE_MAX_LLAMADAS_MODELO`.
+- El límite de tools por sí solo no corta un bucle (con `"continue"` el modelo puede seguir
+  pidiendo): lo corta el límite de llamadas al modelo.
+- Tests: `tests/unit/test_limites.py` (modelo en bucle, lento, que deriva dos veces y que
+  falla con respaldo; el turno siguiente al corte funciona).
+
+---
+
 ## Lo que esto no cubre
 
 - **El chat público de la demo** (`vethis-chat`): sus sesiones son anónimas y las crea el
@@ -76,8 +106,6 @@ durante el minuto: así no se pueden seguir probando keys.
   sesión. Lo frenan `token:tienda` y `chat:tienda`, pero agotando el cupo de la tienda (es un
   DoS para los demás usuarios de esa tienda). Siguiente paso: límite **por IP en el servidor
   del chat** (`app/api/*` de vethis-chat), que sí ve la IP de cada navegador.
-- **Bucles dentro de un turno:** un solo mensaje puede disparar muchas llamadas al LLM y a
-  tools. Eso se limita con `ModelCallLimitMiddleware` / `ToolCallLimitMiddleware` de
-  LangChain (remediación 3 de `vulnerabilidades.md`, pendiente).
+- ~~**Bucles dentro de un turno**~~: resuelto, ver [Límites dentro de un turno](#límites-dentro-de-un-turno).
 - **DDoS de red:** volumen que satura la VM antes de llegar a la app. Para eso hace falta un
   servicio delante (Azure DDoS Protection, Cloudflare).

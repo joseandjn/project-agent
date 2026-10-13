@@ -230,7 +230,9 @@ Por sesión, cliente y tienda (del JWT) y por IP para API keys inválidas, con c
 Redis. Al pasarse: **429** con `Retry-After`. Por defecto: 10 mensajes/min por sesión, 20 por
 cliente, 300/min y 10 000/día por tienda, 120 sesiones nuevas/min por tienda, 10 API keys
 inválidas/min por IP. Todo configurable con `RL_*` en `.env` (`RATE_LIMIT_ENABLED=false` los
-apaga). Además: mensaje de hasta 2000 caracteres y body de hasta 64 KB en Caddy. Detalle:
+apaga). Además: mensaje de hasta 2000 caracteres y body de hasta 64 KB en Caddy, y **dentro de cada
+turno** máximo 8 llamadas al modelo, 12 a tools, 60 s y modelo de respaldo opcional
+(`AGENTE_*`, `LLM_TIMEOUT_SEGUNDOS`, `LLM_FALLBACK_MODEL`). Detalle:
 [`docs/rate_limits.md`](docs/rate_limits.md).
 
 ### Feedback sobre las respuestas

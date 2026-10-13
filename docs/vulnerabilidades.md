@@ -31,7 +31,7 @@ Evaluación del backend `project-agent` (VethisAgent) contra la
 | **ASI09 · Human-Agent Trust Exploitation** | 🟠 Medio-alto | Dominio cuasi-médico; precios/links sin anclaje duro a la fuente |
 | **ASI02 · Tool Misuse & Exploitation** | 🟠 Medio | Tool-calling sin límite; `derivar_veterinario` escribe ficheros |
 | **ASI04 · Agentic Supply Chain** | 🟠 Medio | Árbol de dependencias grande, sin lockfile/hashes; imágenes y modelos sin pinear |
-| **ASI08 · Cascading Failures** | 🟠 Medio | Sin fallback de modelo, sin límites de llamadas por turno; ~~sin rate limit~~ (resuelto) |
+| **ASI08 · Cascading Failures** | 🟠 Medio | ~~Sin fallback de modelo, sin límites de llamadas por turno, sin rate limit~~ (resuelto; fallback opcional con `LLM_FALLBACK_MODEL`) |
 | **ASI05 · Unexpected Code Execution (RCE)** | 🟢 Bajo | El código de la app no ejecuta código dinámico |
 | **ASI07 · Insecure Inter-Agent Communication** | ⚪ No aplica | Un solo agente, sin A2A / sub-agentes |
 | **ASI10 · Rogue Agents** | 🟢 Bajo | Agente síncrono, por request, sin autonomía ni persistencia de intención |
@@ -217,6 +217,14 @@ bump de `langchain`/`langgraph`.
 - `buscar_alimentos` bloquea contra Ollama; la primera llamada calcula los embeddings de
   todo el catálogo en serie (`get_catalog_embeddings`). Ollama lento ⇒ requests apiladas.
 
+**Actualización (2026-10-13), mitigado en su mayor parte:** máximo 8 llamadas al modelo y
+12 a tools por turno, `derivar_veterinario` una vez por turno, tope de pasos del grafo,
+timeout del turno (60 s) y de cada request al proveedor (30 s, 2 reintentos; antes el de
+OpenAI era de 10 min), y `ModelFallbackMiddleware` con `LLM_FALLBACK_MODEL` (opcional). Si
+un turno se corta, se borra de la sesión y el cliente recibe un mensaje fijo. Rate limits por
+sesión, cliente y tienda. Ver `docs/rate_limits.md`. Pendiente: circuit breaker y caché de
+disponibilidad.
+
 **Mitigación**: `ModelFallbackMiddleware` (p. ej. Haiku→Sonnet o OpenAI→Ollama),
 `Model/ToolCallLimitMiddleware`, timeouts explícitos por proveedor, rate limit y circuit
 breaker en el gateway, caché de disponibilidad (TTL corto) para la tool más llamada.
@@ -253,7 +261,7 @@ secuestrado dentro de una petición lo cubre mejor **ASI01**. El "agente auditor
 |---|---|---|
 | 1 | ✅ **Hecho (2026-10-11).** ~~Autenticación en `/chat` (API key del sitio + sesión de usuario) y derivar `session_id` / `cliente_id` del token, nunca del body.~~ | ASI03, ASI06 |
 | 2 | **Guardrails en código** (`app/guardrails/`): forzar derivación ante síntoma en la entrada; guardrail de salida que ancle precios/URLs a `consultar_disponibilidad`. | ASI01, ASI09 |
-| 3 | **Límites y resiliencia**: `ModelFallbackMiddleware` + `Model/ToolCallLimitMiddleware` (built-in de LangChain). ✅ Rate limit hecho (2026-10-12, `docs/rate_limits.md`). | ASI08, ASI02 |
+| 3 | ✅ **Hecho (2026-10-13).** Rate limit, límites de llamadas al modelo y a tools por turno, timeouts del turno y del proveedor, fallback de modelo opcional (`docs/rate_limits.md`). | ASI08, ASI02 |
 | 4 | **Higiene de supply chain**: lockfile con hashes, `pip-audit` en CI, imágenes y modelos pineados por digest. | ASI04 |
 | 5 | **Tratar el catálogo/conocimiento como no confiable**: delimitar en el prompt, sanear el export, no permitir que texto de producto se lea como instrucción. | ASI06, ASI01 |
 
